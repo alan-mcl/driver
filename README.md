@@ -61,3 +61,10 @@ Back up `data/` to preserve your research. Run the JAR from a directory where yo
 | Icon | [docs/icon.png](docs/icon.png) | Window and taskbar icon |
 
 Branding files in `docs/` are copied into the application JAR at build time.
+
+## License
+
+Copyright (C) 2026 Alan McL
+
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
+See [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html).
