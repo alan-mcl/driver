@@ -1,0 +1,50 @@
+---
+description: Java coding conventions for Driver
+globs: **/*.java
+alwaysApply: false
+---
+
+# Java Conventions
+
+## Package Layout
+
+| Package | Responsibility |
+|---------|---------------|
+| `za.driver.model` | Entities, value objects, enums |
+| `za.driver.persistence` | JSON read/write, repositories |
+| `za.driver.scoring` | Metric calculators, ScoringService |
+| `za.driver.import_` | Import wrapper, validation, ImportService |
+| `za.driver.service` | Business logic orchestration |
+| `za.driver.ui` | Swing frames, panels, dialogs |
+
+## Rules
+
+- Enum and field names must match `docs/data_dictionary.md` exactly
+- Use `java.util.UUID`, `java.time.LocalDate`, `java.time.LocalDateTime`, `BigDecimal` for price
+- Jackson for all JSON; no manual string parsing
+- `scoring/` and `import_/` must not import any Swing classes
+- File I/O and scoring off the EDT — use `SwingWorker`
+- Derived metric fields on `Vehicle` are read-only in the UI
+
+## Testing
+
+- JUnit 5 for `scoring/` and `import_/` — required
+- Round-trip serialization tests for `persistence/`
+- Run `mvn test` before marking a phase complete
+
+## Example
+
+```java
+// scoring/ must stay UI-free
+public final class ScoringService {
+    public DerivedMetrics calculate(Vehicle vehicle, ScoringProfile profile) { ... }
+}
+
+// UI delegates to service, never to repository directly
+new SwingWorker<Vehicle, Void>() {
+    protected Vehicle doInBackground() {
+        return vehicleService.save(vehicle);
+    }
+    protected void done() { refreshTable(); }
+}.execute();
+```

@@ -1,0 +1,34 @@
+---
+description: Core project context for Driver
+alwaysApply: true
+---
+
+# Driver
+
+Local-first Java desktop app for comparing, scoring, and shortlisting vehicles.
+
+## Key Documents
+
+- `docs/design_spec.md` — requirements, architecture, metrics, non-goals
+- `docs/data_dictionary.md` — entity fields and enums (source of truth for models)
+- `docs/backlog.md` — deferred features and future work
+- `AGENTS.md` — build commands, architecture, conventions
+
+## Core Principles
+
+1. **Raw data first** — store factual specs; derived scores are calculated, never hand-edited
+2. **Configurable scoring** — profile weight changes must not require re-import
+3. **Local JSON persistence** — human-readable files in `data/`; no database, no cloud
+4. **Backlog discipline** — the core app is complete; only implement items from `backlog.md` when explicitly requested
+
+## Stack
+
+Java 21, Maven, Swing, Jackson, JUnit 5. Package: `za.driver`.
+
+## Architecture
+
+```
+UI (Swing) → Service → Repository → JSON files
+                ↓
+          Scoring engine (pure Java, no Swing)
+```

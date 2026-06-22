@@ -1,0 +1,33 @@
+---
+description: Documentation and specification conventions
+globs: docs/**
+alwaysApply: false
+---
+
+# Docs and Specs
+
+## Source of Truth
+
+- `data_dictionary.md` defines all entity fields, enums, and the import schema
+- `design_spec.md` defines functional requirements, metrics, and non-goals
+- `backlog.md` lists deferred features and future work
+
+Code must align with these documents. Do not invent fields, enums, or metrics.
+
+## backlog.md
+
+Use for planned-but-not-built features (scoring profiles UI, test drives, comparison view, etc.). Do not implement backlog items unless the user asks.
+
+## Import Schema
+
+Root object per data dictionary:
+
+```json
+{ "schemaVersion": 1, "vehicle": {} }
+```
+
+Partial records and missing values are permitted.
+
+## Non-Goals (do not document or implement)
+
+Financing, dealer inventory, maintenance tracking, trade-in valuation, ML recommendations.

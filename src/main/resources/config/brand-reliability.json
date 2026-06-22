@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "aliases": {
+    "Mercedes": "Mercedes-Benz"
+  },
+  "brands": {
+    "Toyota": { "reliability": 95, "confidence": 98 },
+    "Honda": { "reliability": 93, "confidence": 97 },
+    "Mazda": { "reliability": 92, "confidence": 95 },
+    "Suzuki": { "reliability": 90, "confidence": 95 },
+    "Hyundai": { "reliability": 88, "confidence": 95 },
+    "Kia": { "reliability": 88, "confidence": 95 },
+    "Volkswagen": { "reliability": 80, "confidence": 95 },
+    "Nissan": { "reliability": 78, "confidence": 90 },
+    "BMW": { "reliability": 75, "confidence": 90 },
+    "Audi": { "reliability": 73, "confidence": 90 },
+    "Mercedes-Benz": { "reliability": 72, "confidence": 90 },
+    "Peugeot": { "reliability": 68, "confidence": 85 },
+    "MINI": { "reliability": 65, "confidence": 85 },
+    "Renault": { "reliability": 65, "confidence": 90 },
+    "Ford": { "reliability": 70, "confidence": 95 },
+    "Isuzu": { "reliability": 85, "confidence": 95 },
+    "Mahindra": { "reliability": 75, "confidence": 80 },
+    "Haval": { "reliability": 65, "confidence": 60 },
+    "Chery": { "reliability": 65, "confidence": 55 },
+    "MG": { "reliability": 65, "confidence": 50 },
+    "Omoda": { "reliability": 65, "confidence": 40 },
+    "Jaecoo": { "reliability": 65, "confidence": 35 },
+    "Changan": { "reliability": 60, "confidence": 35 },
+    "JAC": { "reliability": 60, "confidence": 45 },
+    "BAIC": { "reliability": 55, "confidence": 40 }
+  }
+}
