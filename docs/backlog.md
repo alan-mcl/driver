@@ -16,11 +16,8 @@ Some items below are still described in `design_spec.md` but were deliberately d
 
 ## Scoring profiles
 
-The active profile is fully configurable via **Config → Scoring Profile…** (name, top-metric selection, aggregate name/weight, and aggregate composition). Multi-profile management was not built.
+Multi-profile management is available via the toolbar profile selector and **Config → Manage Profiles…** (create, duplicate, edit, delete). The active profile selection is persisted in `data/app-config.json`. Switching profiles reloads vehicle scores live.
 
-- Profile list/create/edit/delete UI (`ProfilePanel`)
-- Active profile selector in the main toolbar
-- Recalculate overall scores when switching profiles (not just when editing weights)
 - Additional seed profiles: Budget Focused, Executive, Daily Commuter (Family Focused is seeded today)
 - Historical score tracking across profile changes
 - Per-profile shortlists

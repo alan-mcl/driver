@@ -338,6 +338,20 @@ Defines metric weightings for the active scoring profile.
 
 The eight **base metrics** are: `SAFETY`, `RUNNING_COST`, `RELIABILITY`, `COMFORT`, `PERFORMANCE`, `DAILY_DRIVER`, `TECHNOLOGY`, `PRESTIGE`. Each profile partitions them into four top and four aggregate components.
 
+Profiles are stored as JSON in `data/profiles/{uuid}.json`.
+
+---
+
+## App Config
+
+Application-level settings persisted across restarts.
+
+| Field | Type | Required |
+|---------|---------|---------|
+| activeProfileId | UUID | No |
+
+Stored in `data/app-config.json`. When missing or pointing at a deleted profile, the first available scoring profile is used.
+
 ---
 
 ## Scoring Weight

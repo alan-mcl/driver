@@ -84,6 +84,45 @@ class ScoringProfileServiceTest {
     }
 
     @Test
+    void migrateLegacyWeights_preservesNewFormatWhenTechnologyOrPrestigeAreTopMetrics() {
+        List<ScoringWeight> weights = new ArrayList<>();
+        weights.add(weight(Metric.SAFETY, 10.0));
+        weights.add(weight(Metric.PERFORMANCE, 50.0));
+        weights.add(weight(Metric.TECHNOLOGY, 10.0));
+        weights.add(weight(Metric.PRESTIGE, 20.0));
+        weights.add(weight(Metric.AWESOMENESS, 10.0));
+
+        List<ScoringWeight> migrated = profileService.migrateLegacyWeights(weights);
+
+        assertEquals(5, migrated.size());
+        assertEquals(10.0, weightFor(migrated, Metric.TECHNOLOGY));
+        assertEquals(20.0, weightFor(migrated, Metric.PRESTIGE));
+        assertEquals(10.0, weightFor(migrated, Metric.AWESOMENESS));
+    }
+
+    @Test
+    void createProfile_acceptsTechnologyAndPrestigeAsTopMetrics() throws IOException {
+        List<ScoringWeight> weights = new ArrayList<>();
+        weights.add(weight(Metric.SAFETY, 10.0));
+        weights.add(weight(Metric.PERFORMANCE, 50.0));
+        weights.add(weight(Metric.TECHNOLOGY, 10.0));
+        weights.add(weight(Metric.PRESTIGE, 20.0));
+        weights.add(weight(Metric.AWESOMENESS, 10.0));
+
+        List<ScoringWeight> components = new ArrayList<>();
+        components.add(weight(Metric.RUNNING_COST, 25.0));
+        components.add(weight(Metric.RELIABILITY, 25.0));
+        components.add(weight(Metric.COMFORT, 25.0));
+        components.add(weight(Metric.DAILY_DRIVER, 25.0));
+
+        ScoringProfile created = profileService.createProfile(
+                "Performance", weights, "Practility", components);
+
+        assertEquals("Performance", created.getName());
+        assertEquals(10.0, weightFor(created.getWeights(), Metric.TECHNOLOGY));
+    }
+
+    @Test
     void updateWeightsAndRecalculateAll_persistsProfileAndUpdatesOverallScores() throws IOException {
         profileRepository.save(profile);
 
@@ -215,6 +254,73 @@ class ScoringProfileServiceTest {
 
         Vehicle reloaded = vehicleRepository.findById(full.getId()).orElseThrow();
         assertNotNull(reloaded.getDerivedMetrics().getAwesomenessScore());
+    }
+
+    @Test
+    void createProfile_assignsIdAndPersists() throws IOException {
+        ScoringProfile created = profileService.createProfile(
+                "Budget Focused",
+                copyWeights(profile.getWeights()),
+                profile.getAggregateName(),
+                copyWeights(profile.getAggregateComponents()));
+
+        assertNotNull(created.getId());
+        assertEquals("Budget Focused", created.getName());
+        assertTrue(profileRepository.findById(created.getId()).isPresent());
+    }
+
+    @Test
+    void duplicateProfile_deepCopiesWeightsAndComponents() throws IOException {
+        profileRepository.save(profile);
+
+        ScoringProfile duplicate = profileService.duplicateProfile(profile, "Family Copy");
+
+        assertNotNull(duplicate.getId());
+        assertEquals("Family Copy", duplicate.getName());
+        assertEquals(55.0, weightFor(duplicate.getAggregateComponents(), Metric.PRESTIGE));
+        assertFalse(duplicate.getId().equals(profile.getId()));
+    }
+
+    @Test
+    void deleteProfile_removesFile() throws IOException {
+        ScoringProfile second = profileService.createProfile(
+                "Second",
+                copyWeights(profile.getWeights()),
+                profile.getAggregateName(),
+                copyWeights(profile.getAggregateComponents()));
+        profileRepository.save(profile);
+
+        profileService.deleteProfile(second.getId());
+
+        assertTrue(profileRepository.findById(second.getId()).isEmpty());
+    }
+
+    @Test
+    void deleteProfile_rejectsLastRemainingProfile() throws IOException {
+        profileRepository.save(profile);
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> profileService.deleteProfile(profile.getId()));
+        assertTrue(error.getMessage().contains("last scoring profile"));
+    }
+
+    @Test
+    void findAll_migratesLegacyProfiles() throws IOException {
+        ScoringProfile legacy = new ScoringProfile();
+        legacy.setId(UUID.randomUUID());
+        legacy.setName("Legacy");
+        legacy.setWeights(copyWeights(profile.getWeights()));
+        profileRepository.save(legacy);
+
+        List<ScoringProfile> profiles = profileService.findAll();
+
+        ScoringProfile loaded = profiles.stream()
+                .filter(p -> legacy.getId().equals(p.getId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Awesomeness", loaded.getAggregateName());
+        assertEquals(4, loaded.getAggregateComponents().size());
     }
 
     @Test

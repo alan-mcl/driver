@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -35,6 +36,7 @@ import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import za.driver.model.ScoringProfile;
 import za.driver.model.Vehicle;
 import za.driver.model.VehicleIdentity;
 import za.driver.model.VehicleStatus;
@@ -48,10 +50,12 @@ public class MainFrame extends JFrame {
     private final AppServices services;
     private final VehicleListPanel listPanel;
     private final VehicleDetailPanel detailPanel;
+    private final JComboBox<ScoringProfile> profileCombo = new JComboBox<>();
     private final Set<UUID> persistedIds = new HashSet<>();
     private ScatterPlotDialog scatterPlotDialog;
     private UUID lastSelectedId;
     private boolean selectionGuard;
+    private boolean profileSwitchGuard;
 
     public MainFrame(AppServices services) {
         super(APP_NAME);
@@ -81,12 +85,31 @@ public class MainFrame extends JFrame {
         deleteButton.addActionListener(e -> deleteVehicle());
         refreshButton.addActionListener(e -> refreshVehicles());
 
+        profileCombo.setMaximumRowCount(12);
+        profileCombo.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel label = new JLabel(value != null && value.getName() != null ? value.getName() : "Profile");
+            if (isSelected) {
+                label.setOpaque(true);
+                label.setBackground(list.getSelectionBackground());
+                label.setForeground(list.getSelectionForeground());
+            }
+            return label;
+        });
+        profileCombo.addActionListener(e -> onProfileComboChanged());
+        JButton manageProfilesButton = new JButton("Manage Profiles…");
+        manageProfilesButton.addActionListener(e -> openProfileManagerDialog());
+
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.add(newButton);
         toolBar.add(saveButton);
         toolBar.add(deleteButton);
         toolBar.add(refreshButton);
+        toolBar.addSeparator();
+        toolBar.add(new JLabel(" Profile: "));
+        toolBar.add(profileCombo);
+        toolBar.add(manageProfilesButton);
+        rebuildProfileCombo();
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, listPanel, detailPanel);
         splitPane.setResizeWeight(0.78);
@@ -157,9 +180,9 @@ public class MainFrame extends JFrame {
         JMenu configMenu = new JMenu("Config");
         configMenu.setMnemonic(KeyEvent.VK_C);
 
-        JMenuItem scoringWeightsItem = new JMenuItem("Scoring Profile…");
-        scoringWeightsItem.setMnemonic(KeyEvent.VK_W);
-        scoringWeightsItem.addActionListener(e -> openScoringWeightsDialog());
+        JMenuItem scoringWeightsItem = new JMenuItem("Manage Profiles…");
+        scoringWeightsItem.setMnemonic(KeyEvent.VK_P);
+        scoringWeightsItem.addActionListener(e -> openProfileManagerDialog());
         configMenu.add(scoringWeightsItem);
 
         JMenuItem garageDimensionsItem = new JMenuItem("Garage Dimensions…");
@@ -226,27 +249,88 @@ public class MainFrame extends JFrame {
         JOptionPane.showMessageDialog(this, panel, "About " + APP_NAME, JOptionPane.PLAIN_MESSAGE);
     }
 
-    private void openScoringWeightsDialog() {
-        ScoringWeightsDialog dialog = new ScoringWeightsDialog(this, services, ignored -> {
-            listPanel.setActiveProfile(services.activeProfile);
-            detailPanel.setActiveProfile(services.activeProfile);
-            UUID selectedId = listPanel.getSelectedVehicle() != null ? listPanel.getSelectedVehicle().getId() : null;
-            BackgroundTasks.run(
-                    this,
-                    () -> services.vehicleService.findAll(services.activeProfile),
-                    vehicles -> {
-                        applyVehicleList(vehicles);
-                        if (selectedId != null) {
-                            listPanel.setSelectedVehicle(selectedId);
-                            Vehicle selected = listPanel.getSelectedVehicle();
-                            if (selected != null) {
-                                detailPanel.loadVehicle(selected, persistedIds.contains(selected.getId()));
-                            }
-                        }
-                    },
-                    error -> BackgroundTasks.showError(this, "Load Failed", error));
-        });
+    private void openProfileManagerDialog() {
+        ProfileManagerDialog dialog = new ProfileManagerDialog(this, services, ignored -> afterProfileChange());
         dialog.setVisible(true);
+    }
+
+    private void onProfileComboChanged() {
+        if (profileSwitchGuard) {
+            return;
+        }
+        ScoringProfile selected = (ScoringProfile) profileCombo.getSelectedItem();
+        if (selected == null || Objects.equals(selected.getId(), services.activeProfile.getId())) {
+            return;
+        }
+
+        confirmNavigateAway(
+                () -> BackgroundTasks.run(
+                        this,
+                        () -> {
+                            services.setActiveProfile(selected);
+                            return services.vehicleService.findAll(services.activeProfile);
+                        },
+                        vehicles -> {
+                            listPanel.setActiveProfile(services.activeProfile);
+                            detailPanel.setActiveProfile(services.activeProfile);
+                            applyVehicleList(vehicles);
+                        },
+                        error -> {
+                            BackgroundTasks.showError(this, "Profile Switch Failed", error);
+                            rebuildProfileCombo();
+                        }),
+                this::rebuildProfileCombo);
+    }
+
+    private void rebuildProfileCombo() {
+        profileSwitchGuard = true;
+        try {
+            profileCombo.removeAllItems();
+            try {
+                for (ScoringProfile profile : services.profileService.findAll()) {
+                    profileCombo.addItem(profile);
+                }
+            } catch (IOException error) {
+                BackgroundTasks.showError(this, "Load Profiles Failed", error);
+                return;
+            }
+            ScoringProfile active = services.activeProfile;
+            if (active != null) {
+                for (int i = 0; i < profileCombo.getItemCount(); i++) {
+                    ScoringProfile item = profileCombo.getItemAt(i);
+                    if (item != null && Objects.equals(item.getId(), active.getId())) {
+                        profileCombo.setSelectedIndex(i);
+                        return;
+                    }
+                }
+            }
+            if (profileCombo.getItemCount() > 0) {
+                profileCombo.setSelectedIndex(0);
+            }
+        } finally {
+            profileSwitchGuard = false;
+        }
+    }
+
+    private void afterProfileChange() {
+        rebuildProfileCombo();
+        listPanel.setActiveProfile(services.activeProfile);
+        detailPanel.setActiveProfile(services.activeProfile);
+        UUID selectedId = listPanel.getSelectedVehicle() != null ? listPanel.getSelectedVehicle().getId() : null;
+        BackgroundTasks.run(
+                this,
+                () -> services.vehicleService.findAll(services.activeProfile),
+                vehicles -> {
+                    applyVehicleList(vehicles);
+                    if (selectedId != null) {
+                        listPanel.setSelectedVehicle(selectedId);
+                        Vehicle selected = listPanel.getSelectedVehicle();
+                        if (selected != null) {
+                            detailPanel.loadVehicle(selected, persistedIds.contains(selected.getId()));
+                        }
+                    }
+                },
+                error -> BackgroundTasks.showError(this, "Load Failed", error));
     }
 
     private void openGarageDimensionsDialog() {

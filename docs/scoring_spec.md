@@ -443,7 +443,7 @@ Seeded by `DefaultProfileSeeder` (UUID `6ba7b810-9dad-11d1-80b4-00c04fd430c8`):
 
 Aggregate components (Comfort, Daily Driver, Technology, Prestige): 15%, 15%, 15%, 55% respectively.
 
-The active profile is fully configurable via **Config → Scoring Profile…** (profile name, top-metric selection, aggregate name/weight, and aggregate composition). Legacy profiles with separate Comfort, Daily Driver, Technology, and Prestige profile weights are migrated automatically (their weights are summed into the aggregate slot). Profiles missing `aggregateName` or `aggregateComponents` are backfilled with `"Awesomeness"` and the default composition on load.
+The active profile is fully configurable via **Config → Manage Profiles…** or the toolbar profile selector (profile name, top-metric selection, aggregate name/weight, and aggregate composition). The active profile id is persisted in `data/app-config.json`. Legacy profiles with separate Comfort, Daily Driver, Technology, and Prestige profile weights are migrated automatically (their weights are summed into the aggregate slot). Profiles missing `aggregateName` or `aggregateComponents` are backfilled with `"Awesomeness"` and the default composition on load.
 
 Additional profiles are stored as JSON in `data/profiles/{uuid}.json`.
 
@@ -596,7 +596,7 @@ If a profile assigns weight to Safety and Reliability but only Safety can be com
 | Scale ranges (min/max) | `ScoringConstants` — `FUEL_MIN`, `POWER_MAX`, etc. |
 | Sub-metric weights inside a headline metric | `ScoringConstants` — `SAFETY_NCAP_WEIGHT`, `TECH_ADAPTIVE_CRUISE_WEIGHT`, etc. |
 | Which fields feed a metric | Individual `*Calculator.java` |
-| Profile-level metric weights | `ScoringProfile` JSON in `data/profiles/` (**Config → Scoring Profile…**) |
+| Profile-level metric weights | `ScoringProfile` JSON in `data/profiles/` (**Config → Manage Profiles…**, toolbar selector) |
 | Manual Reliability / Prestige per vehicle | Vehicle detail overrides → `ScoringOverrides` |
 
 **Notes:**

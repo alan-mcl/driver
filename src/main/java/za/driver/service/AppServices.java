@@ -3,10 +3,14 @@ package za.driver.service;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 import za.driver.import_.ImportService;
 import za.driver.model.GarageDimensions;
 import za.driver.model.ScoringProfile;
+import za.driver.persistence.AppConfigRepository;
 import za.driver.persistence.BrandReliabilityConfigRepository;
 import za.driver.persistence.GarageConfigRepository;
 import za.driver.persistence.ScoringProfileRepository;
@@ -28,7 +32,8 @@ public final class AppServices {
     public final ScoringProfileService profileService;
     public final GarageConfigService garageConfigService;
     public final BrandReliabilityConfigService brandReliabilityConfigService;
-    public final ScoringProfile activeProfile;
+    public final AppConfigService appConfigService;
+    public ScoringProfile activeProfile;
     public final GarageDimensions garageDimensions;
     public final Path dataRoot;
 
@@ -42,6 +47,7 @@ public final class AppServices {
             ScoringProfileService profileService,
             GarageConfigService garageConfigService,
             BrandReliabilityConfigService brandReliabilityConfigService,
+            AppConfigService appConfigService,
             ScoringProfile activeProfile,
             Path dataRoot) {
         this.vehicleService = vehicleService;
@@ -53,9 +59,18 @@ public final class AppServices {
         this.profileService = profileService;
         this.garageConfigService = garageConfigService;
         this.brandReliabilityConfigService = brandReliabilityConfigService;
+        this.appConfigService = appConfigService;
         this.activeProfile = activeProfile;
         this.garageDimensions = garageConfigService.getGarageDimensions();
         this.dataRoot = dataRoot;
+    }
+
+    public void setActiveProfile(ScoringProfile profile) throws IOException {
+        if (profile == null || profile.getId() == null) {
+            throw new IllegalArgumentException("Active profile must have an id");
+        }
+        activeProfile = profile;
+        appConfigService.setActiveProfileId(profile.getId());
     }
 
     public static AppServices create() throws IOException {
@@ -76,8 +91,14 @@ public final class AppServices {
         SpreadsheetExportService spreadsheetExportService = new SpreadsheetExportService();
         SpreadsheetImportService spreadsheetImportService = new SpreadsheetImportService(vehicleService);
         PresentationExportService presentationExportService = new PresentationExportService();
-        ScoringProfile activeProfile = DefaultProfileSeeder.ensureDefaultProfile(profileRepository);
-        activeProfile = profileService.ensureMigratedProfile(activeProfile);
+        DefaultProfileSeeder.ensureDefaultProfile(profileRepository);
+        List<ScoringProfile> profiles = profileService.findAll();
+        AppConfigService appConfigService = new AppConfigService(new AppConfigRepository(dataRoot));
+        ScoringProfile activeProfile = resolveActiveProfile(profiles, appConfigService.getActiveProfileId());
+        if (activeProfile.getId() != null
+                && !Objects.equals(activeProfile.getId(), appConfigService.getActiveProfileId())) {
+            appConfigService.setActiveProfileId(activeProfile.getId());
+        }
         GarageConfigService garageConfigService = new GarageConfigService(new GarageConfigRepository(dataRoot));
         return new AppServices(
                 vehicleService,
@@ -89,7 +110,22 @@ public final class AppServices {
                 profileService,
                 garageConfigService,
                 brandReliabilityConfigService,
+                appConfigService,
                 activeProfile,
                 dataRoot);
+    }
+
+    private static ScoringProfile resolveActiveProfile(List<ScoringProfile> profiles, UUID activeProfileId) {
+        if (profiles.isEmpty()) {
+            throw new IllegalStateException("No scoring profiles available");
+        }
+        if (activeProfileId != null) {
+            for (ScoringProfile profile : profiles) {
+                if (activeProfileId.equals(profile.getId())) {
+                    return profile;
+                }
+            }
+        }
+        return profiles.get(0);
     }
 }

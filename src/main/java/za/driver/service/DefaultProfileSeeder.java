@@ -30,6 +30,18 @@ public final class DefaultProfileSeeder {
         ScoringProfile profile = new ScoringProfile();
         profile.setId(FAMILY_FOCUSED_ID);
         profile.setName("Family Focused");
+        applyFamilyFocusedDefaults(profile);
+        return profile;
+    }
+
+    public static ScoringProfile newProfileTemplate() {
+        ScoringProfile profile = new ScoringProfile();
+        profile.setName("New Profile");
+        applyFamilyFocusedDefaults(profile);
+        return profile;
+    }
+
+    private static void applyFamilyFocusedDefaults(ScoringProfile profile) {
         profile.setAggregateName("Awesomeness");
 
         List<ScoringWeight> weights = new ArrayList<>();
@@ -46,8 +58,6 @@ public final class DefaultProfileSeeder {
         aggregateComponents.add(weight(Metric.DAILY_DRIVER, 15.0));
         aggregateComponents.add(weight(Metric.TECHNOLOGY, 15.0));
         profile.setAggregateComponents(aggregateComponents);
-
-        return profile;
     }
 
     private static ScoringWeight weight(Metric metric, double value) {

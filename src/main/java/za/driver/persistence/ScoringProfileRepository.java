@@ -41,4 +41,8 @@ public class ScoringProfileRepository extends JsonRepository<ScoringProfile> {
     public List<ScoringProfile> findAll() throws IOException {
         return super.findAll();
     }
+
+    public void delete(UUID id) throws IOException {
+        super.delete(id);
+    }
 }

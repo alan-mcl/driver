@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import za.driver.model.Metric;
 import za.driver.model.ScoringProfile;
@@ -39,6 +41,78 @@ public class ScoringProfileService {
         this.profileRepository = profileRepository;
         this.vehicleRepository = vehicleRepository;
         this.scoringService = scoringService;
+    }
+
+    public List<ScoringProfile> findAll() throws IOException {
+        List<ScoringProfile> profiles = new ArrayList<>();
+        for (ScoringProfile profile : profileRepository.findAll()) {
+            profiles.add(ensureMigratedProfile(profile));
+        }
+        return profiles;
+    }
+
+    public Optional<ScoringProfile> findById(UUID id) throws IOException {
+        Optional<ScoringProfile> profile = profileRepository.findById(id);
+        if (profile.isEmpty()) {
+            return profile;
+        }
+        return Optional.of(ensureMigratedProfile(profile.get()));
+    }
+
+    public ScoringProfile createProfile(
+            String name,
+            List<ScoringWeight> weights,
+            String aggregateName,
+            List<ScoringWeight> aggregateComponents) throws IOException {
+        List<ScoringWeight> normalizedWeights = migrateLegacyWeights(weights);
+        List<ScoringWeight> normalizedComponents = copyWeights(aggregateComponents);
+        validateProfile(name, normalizedWeights, aggregateName, normalizedComponents);
+
+        ScoringProfile profile = new ScoringProfile();
+        profile.setId(UUID.randomUUID());
+        profile.setName(name.trim());
+        profile.setWeights(normalizedWeights);
+        profile.setAggregateName(aggregateName.trim());
+        profile.setAggregateComponents(normalizedComponents);
+        profileRepository.save(profile);
+        return profile;
+    }
+
+    public ScoringProfile duplicateProfile(ScoringProfile source, String newName) throws IOException {
+        if (source == null) {
+            throw new IllegalArgumentException("Source profile is required");
+        }
+        ScoringProfile migrated = ensureMigratedProfile(source);
+        return createProfile(
+                newName,
+                copyWeights(migrated.getWeights()),
+                migrated.getAggregateName(),
+                copyWeights(migrated.getAggregateComponents()));
+    }
+
+    public void deleteProfile(UUID id) throws IOException {
+        List<ScoringProfile> profiles = profileRepository.findAll();
+        if (profiles.size() <= 1) {
+            throw new IllegalArgumentException("Cannot delete the last scoring profile");
+        }
+        profileRepository.delete(id);
+    }
+
+    public void saveProfileEdits(
+            ScoringProfile profile,
+            String name,
+            List<ScoringWeight> weights,
+            String aggregateName,
+            List<ScoringWeight> aggregateComponents) throws IOException {
+        List<ScoringWeight> normalizedWeights = migrateLegacyWeights(weights);
+        List<ScoringWeight> normalizedComponents = copyWeights(aggregateComponents);
+        validateProfile(name, normalizedWeights, aggregateName, normalizedComponents);
+
+        profile.setName(name.trim());
+        profile.setWeights(normalizedWeights);
+        profile.setAggregateName(aggregateName.trim());
+        profile.setAggregateComponents(normalizedComponents);
+        profileRepository.save(profile);
     }
 
     public void validateProfile(
@@ -142,6 +216,11 @@ public class ScoringProfileService {
 
     public List<ScoringWeight> migrateLegacyWeights(List<ScoringWeight> weights) {
         if (weights == null || weights.isEmpty()) {
+            return weights;
+        }
+
+        boolean hasAwesomeness = weights.stream().anyMatch(w -> w.getMetric() == Metric.AWESOMENESS);
+        if (hasAwesomeness && weights.size() == 5) {
             return weights;
         }
 
