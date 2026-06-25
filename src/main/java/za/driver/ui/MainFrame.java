@@ -1,17 +1,23 @@
 package za.driver.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -128,6 +134,10 @@ public class MainFrame extends JFrame {
         JMenuItem exportSpreadsheetItem = new JMenuItem("Export CSV…");
         exportSpreadsheetItem.addActionListener(e -> exportSpreadsheet());
         fileMenu.add(exportSpreadsheetItem);
+
+        JMenuItem exportPresentationItem = new JMenuItem("Export Presentation…");
+        exportPresentationItem.addActionListener(e -> exportPresentation());
+        fileMenu.add(exportPresentationItem);
 
         JMenuItem importSpreadsheetItem = new JMenuItem("Import CSV…");
         importSpreadsheetItem.addActionListener(e -> openSpreadsheetImportDialog());
@@ -293,6 +303,102 @@ public class MainFrame extends JFrame {
                         "Export Complete",
                         JOptionPane.INFORMATION_MESSAGE),
                 error -> BackgroundTasks.showError(this, "Export Failed", error));
+    }
+
+    private void exportPresentation() {
+        List<Vehicle> selected = listPanel.getSelectedVehicles();
+        if (selected.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Select one or more vehicles in the list to export a presentation.",
+                    "Export Presentation",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setDialogTitle("Choose folder for presentation export");
+        chooser.setSelectedFile(new java.io.File("driver-presentation-" + LocalDate.now()));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        java.io.File chosen = chooser.getSelectedFile();
+        Path outputDir = chosen.toPath();
+
+        Set<UUID> selectedIds = selected.stream()
+                .map(Vehicle::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        BackgroundTasks.run(
+                this,
+                () -> {
+                    Map<UUID, Vehicle> scoredById = new HashMap<>();
+                    for (Vehicle vehicle : services.vehicleService.findAll(services.activeProfile)) {
+                        if (vehicle.getId() != null && selectedIds.contains(vehicle.getId())) {
+                            scoredById.put(vehicle.getId(), vehicle);
+                        }
+                    }
+                    List<Vehicle> vehiclesToExport = selected.stream()
+                            .map(Vehicle::getId)
+                            .map(scoredById::get)
+                            .filter(Objects::nonNull)
+                            .toList();
+                    if (vehiclesToExport.isEmpty()) {
+                        throw new IllegalStateException("Selected vehicles could not be loaded.");
+                    }
+                    services.presentationExportService.export(outputDir, vehiclesToExport, services.activeProfile);
+                    return outputDir;
+                },
+                path -> showPresentationExportCompleteDialog(path, selected.size()),
+                error -> BackgroundTasks.showError(this, "Export Failed", error));
+    }
+
+    private void showPresentationExportCompleteDialog(Path outputDir, int selectedCount) {
+        String message = "Exported presentation for "
+                + selectedCount
+                + " vehicle(s) to:\n"
+                + outputDir
+                + "\n\nDrop hero images into the images/ folder (see IMAGES.md), then open index.html.";
+
+        Object[] options = {"Open Folder", "Open in Browser", "Close"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                message,
+                "Export Complete",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                options,
+                options[2]);
+
+        if (choice == 0) {
+            openExportedPath(outputDir);
+        } else if (choice == 1) {
+            openExportedPath(outputDir.resolve("index.html"));
+        }
+    }
+
+    private void openExportedPath(Path path) {
+        if (!Desktop.isDesktopSupported()) {
+            return;
+        }
+        try {
+            Desktop desktop = Desktop.getDesktop();
+            if (path.toString().endsWith(".html")) {
+                desktop.browse(path.toUri());
+            } else {
+                desktop.open(path.toFile());
+            }
+        } catch (IOException | UnsupportedOperationException ignored) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Could not open:\n" + path,
+                    "Open Failed",
+                    JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     private void createNewVehicle() {

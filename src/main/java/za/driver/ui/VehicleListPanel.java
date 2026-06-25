@@ -3,8 +3,10 @@ package za.driver.ui;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.swing.JPanel;
@@ -47,7 +49,7 @@ public class VehicleListPanel extends JPanel {
         this.garageDimensions = garageDimensions;
         tableModel = new VehicleTableModel(activeProfile);
         table = new JTable(tableModel);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setFillsViewportHeight(true);
         table.setAutoCreateRowSorter(true);
         configureRenderers();
@@ -88,12 +90,35 @@ public class VehicleListPanel extends JPanel {
     }
 
     public Vehicle getSelectedVehicle() {
-        int viewRow = table.getSelectedRow();
-        if (viewRow < 0) {
+        int leadViewRow = table.getSelectionModel().getLeadSelectionIndex();
+        if (leadViewRow < 0) {
             return null;
         }
-        int modelRow = table.convertRowIndexToModel(viewRow);
+        int modelRow = table.convertRowIndexToModel(leadViewRow);
+        if (modelRow < 0 || modelRow >= tableModel.getRowCount()) {
+            return null;
+        }
         return tableModel.getVehicleAt(modelRow);
+    }
+
+    public List<Vehicle> getSelectedVehicles() {
+        int[] viewRows = table.getSelectedRows();
+        if (viewRows.length == 0) {
+            return List.of();
+        }
+        Set<UUID> seen = new LinkedHashSet<>();
+        List<Vehicle> selected = new ArrayList<>();
+        for (int viewRow : viewRows) {
+            int modelRow = table.convertRowIndexToModel(viewRow);
+            if (modelRow < 0 || modelRow >= tableModel.getRowCount()) {
+                continue;
+            }
+            Vehicle vehicle = tableModel.getVehicleAt(modelRow);
+            if (vehicle.getId() != null && seen.add(vehicle.getId())) {
+                selected.add(vehicle);
+            }
+        }
+        return List.copyOf(selected);
     }
 
     public List<Vehicle> getVisibleVehicles() {
@@ -101,6 +126,7 @@ public class VehicleListPanel extends JPanel {
     }
 
     public void setSelectedVehicle(UUID vehicleId) {
+        table.clearSelection();
         if (vehicleId == null) {
             return;
         }

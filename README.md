@@ -39,6 +39,7 @@ Back up `data/` to preserve your research. Run the JAR from a directory where yo
 ## Features
 
 - Import vehicles from JSON or CSV; export fleet to CSV
+- Export selected vehicles to an offline Reveal.js marketing presentation (File → Export Presentation…)
 - Filter and sort by price, body type, fuel type, scores, and garage clearance
 - Weighted scoring with configurable metric weights (Config → Scoring Weights…)
 - Star ratings and scatter plot for fleet comparison

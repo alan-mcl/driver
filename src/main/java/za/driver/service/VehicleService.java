@@ -109,12 +109,11 @@ public class VehicleService {
         return saved;
     }
 
-    public List<Vehicle> importSpreadsheetUpdates(SpreadsheetImportResult result, ScoringProfile profile)
-            throws IOException {
-        return importSpreadsheetUpdates(result, profile, ScoringOverrides.none());
+    public List<Vehicle> importSpreadsheet(SpreadsheetImportResult result, ScoringProfile profile) throws IOException {
+        return importSpreadsheet(result, profile, ScoringOverrides.none());
     }
 
-    public List<Vehicle> importSpreadsheetUpdates(
+    public List<Vehicle> importSpreadsheet(
             SpreadsheetImportResult result,
             ScoringProfile profile,
             ScoringOverrides overrides) throws IOException {
@@ -125,16 +124,55 @@ public class VehicleService {
 
         List<Vehicle> saved = new ArrayList<>();
         for (SpreadsheetImportResult.SpreadsheetImportEntry entry : result.getEntries()) {
-            Vehicle existing = vehicleRepository.findById(entry.vehicleId())
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown vehicle id: " + entry.vehicleId()));
-            Vehicle merged = VehicleImportMerger.merge(existing, entry.vehicle());
-            ScoringOverrides existingOverrides = ScoringOverrides.fromVehicle(existing);
-            ScoringOverrides rowOverrides = ScoringOverrides.merge(existingOverrides, entry.scoringOverrides());
-            ScoringOverrides mergedOverrides = ScoringOverrides.merge(rowOverrides, overrides);
-            ManualScoreOverrideUtil.applyOverrides(merged, mergedOverrides);
-            saved.add(save(merged, profile, ScoringOverrides.none()));
+            if (entry.action() == SpreadsheetImportResult.ImportAction.CREATE) {
+                saved.add(importSpreadsheetCreate(entry, profile, overrides));
+            } else {
+                saved.add(importSpreadsheetUpdate(entry, profile, overrides));
+            }
         }
         return saved;
+    }
+
+    public List<Vehicle> importSpreadsheetUpdates(SpreadsheetImportResult result, ScoringProfile profile)
+            throws IOException {
+        return importSpreadsheet(result, profile);
+    }
+
+    public List<Vehicle> importSpreadsheetUpdates(
+            SpreadsheetImportResult result,
+            ScoringProfile profile,
+            ScoringOverrides overrides) throws IOException {
+        return importSpreadsheet(result, profile, overrides);
+    }
+
+    private Vehicle importSpreadsheetCreate(
+            SpreadsheetImportResult.SpreadsheetImportEntry entry,
+            ScoringProfile profile,
+            ScoringOverrides overrides) throws IOException {
+        Vehicle vehicle = entry.vehicle();
+        vehicle.setId(entry.vehicleId());
+        vehicle.setDerivedMetrics(null);
+        enrichSource(vehicle);
+        vehicle.getSource().setImportedDate(LocalDateTime.now());
+        ScoringOverrides mergedOverrides = ScoringOverrides.merge(entry.scoringOverrides(), overrides);
+        ManualScoreOverrideUtil.applyOverrides(vehicle, mergedOverrides);
+        vehicle.setDerivedMetrics(scoringService.calculate(vehicle, profile, ScoringOverrides.fromVehicle(vehicle)));
+        vehicleRepository.save(vehicle);
+        return vehicle;
+    }
+
+    private Vehicle importSpreadsheetUpdate(
+            SpreadsheetImportResult.SpreadsheetImportEntry entry,
+            ScoringProfile profile,
+            ScoringOverrides overrides) throws IOException {
+        Vehicle existing = vehicleRepository.findById(entry.vehicleId())
+                .orElseThrow(() -> new IllegalArgumentException("Unknown vehicle id: " + entry.vehicleId()));
+        Vehicle merged = VehicleImportMerger.merge(existing, entry.vehicle());
+        ScoringOverrides existingOverrides = ScoringOverrides.fromVehicle(existing);
+        ScoringOverrides rowOverrides = ScoringOverrides.merge(existingOverrides, entry.scoringOverrides());
+        ScoringOverrides mergedOverrides = ScoringOverrides.merge(rowOverrides, overrides);
+        ManualScoreOverrideUtil.applyOverrides(merged, mergedOverrides);
+        return save(merged, profile, ScoringOverrides.none());
     }
 
     private Vehicle importEntry(ImportVehicleEntry entry, ScoringProfile profile, ScoringOverrides overrides)

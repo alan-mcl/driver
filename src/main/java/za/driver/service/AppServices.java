@@ -10,6 +10,7 @@ import za.driver.model.ScoringProfile;
 import za.driver.persistence.GarageConfigRepository;
 import za.driver.persistence.ScoringProfileRepository;
 import za.driver.persistence.VehicleRepository;
+import za.driver.presentation.PresentationExportService;
 import za.driver.scoring.ScoringDataReportService;
 import za.driver.scoring.ScoringService;
 import za.driver.spreadsheet.SpreadsheetExportService;
@@ -21,6 +22,7 @@ public final class AppServices {
     public final ImportService importService;
     public final SpreadsheetExportService spreadsheetExportService;
     public final SpreadsheetImportService spreadsheetImportService;
+    public final PresentationExportService presentationExportService;
     public final ScoringDataReportService scoringDataReportService;
     public final ScoringProfileService profileService;
     public final GarageConfigService garageConfigService;
@@ -33,6 +35,7 @@ public final class AppServices {
             ImportService importService,
             SpreadsheetExportService spreadsheetExportService,
             SpreadsheetImportService spreadsheetImportService,
+            PresentationExportService presentationExportService,
             ScoringDataReportService scoringDataReportService,
             ScoringProfileService profileService,
             GarageConfigService garageConfigService,
@@ -42,6 +45,7 @@ public final class AppServices {
         this.importService = importService;
         this.spreadsheetExportService = spreadsheetExportService;
         this.spreadsheetImportService = spreadsheetImportService;
+        this.presentationExportService = presentationExportService;
         this.scoringDataReportService = scoringDataReportService;
         this.profileService = profileService;
         this.garageConfigService = garageConfigService;
@@ -63,7 +67,8 @@ public final class AppServices {
                 scoringService);
         ImportService importService = new ImportService();
         SpreadsheetExportService spreadsheetExportService = new SpreadsheetExportService();
-        SpreadsheetImportService spreadsheetImportService = new SpreadsheetImportService(vehicleRepository);
+        SpreadsheetImportService spreadsheetImportService = new SpreadsheetImportService(vehicleService);
+        PresentationExportService presentationExportService = new PresentationExportService();
         ScoringProfile activeProfile = DefaultProfileSeeder.ensureDefaultProfile(profileRepository);
         activeProfile = profileService.ensureMigratedProfile(activeProfile);
         GarageConfigService garageConfigService = new GarageConfigService(new GarageConfigRepository(dataRoot));
@@ -72,6 +77,7 @@ public final class AppServices {
                 importService,
                 spreadsheetExportService,
                 spreadsheetImportService,
+                presentationExportService,
                 scoringDataReportService,
                 profileService,
                 garageConfigService,

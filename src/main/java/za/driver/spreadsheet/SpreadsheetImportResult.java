@@ -9,6 +9,11 @@ import za.driver.scoring.ScoringOverrides;
 
 public final class SpreadsheetImportResult {
 
+    public enum ImportAction {
+        CREATE,
+        UPDATE
+    }
+
     private final List<SpreadsheetImportEntry> entries;
     private final List<String> errors;
 
@@ -41,11 +46,16 @@ public final class SpreadsheetImportResult {
         return errors;
     }
 
+    public int createCount() {
+        return (int) entries.stream().filter(entry -> entry.action() == ImportAction.CREATE).count();
+    }
+
     public int updateCount() {
-        return entries.size();
+        return (int) entries.stream().filter(entry -> entry.action() == ImportAction.UPDATE).count();
     }
 
     public record SpreadsheetImportEntry(
+            ImportAction action,
             UUID vehicleId,
             Vehicle vehicle,
             ScoringOverrides scoringOverrides,

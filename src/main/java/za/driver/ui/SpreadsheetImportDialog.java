@@ -15,6 +15,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import za.driver.model.VehicleIdentity;
 import za.driver.service.AppServices;
 import za.driver.spreadsheet.SpreadsheetImportResult;
 
@@ -102,7 +103,7 @@ public class SpreadsheetImportDialog extends JDialog {
                         detailArea.setText(buildDetail(result));
                         return;
                     }
-                    statusLabel.setText("Ready to update " + result.updateCount() + " vehicle(s)");
+                    statusLabel.setText(buildStatusSummary(result));
                     detailArea.setText(buildDetail(result));
                     importButton.setEnabled(true);
                 },
@@ -121,12 +122,24 @@ public class SpreadsheetImportDialog extends JDialog {
         }
         BackgroundTasks.run(
                 this,
-                () -> services.vehicleService.importSpreadsheetUpdates(currentResult, services.activeProfile),
+                () -> services.vehicleService.importSpreadsheet(currentResult, services.activeProfile),
                 saved -> {
                     dispose();
                     onSuccess.run();
                 },
                 error -> BackgroundTasks.showError(this, "Import Failed", error));
+    }
+
+    private static String buildStatusSummary(SpreadsheetImportResult result) {
+        int total = result.getEntries().size();
+        int creates = result.createCount();
+        int updates = result.updateCount();
+        StringBuilder summary = new StringBuilder("Ready to import ").append(total).append(" vehicle(s): ");
+        summary.append(creates).append(" new");
+        if (updates > 0) {
+            summary.append(", ").append(updates).append(" update").append(updates == 1 ? "" : "s");
+        }
+        return summary.toString();
     }
 
     private static String buildDetail(SpreadsheetImportResult result) {
@@ -138,18 +151,53 @@ public class SpreadsheetImportDialog extends JDialog {
             }
             detail.append('\n');
         }
-        if (!result.getEntries().isEmpty()) {
-            detail.append("Updates:\n");
-            for (SpreadsheetImportResult.SpreadsheetImportEntry entry : result.getEntries()) {
-                detail.append("- ")
+        appendEntrySection(
+                detail,
+                "Creates:",
+                result.getEntries().stream()
+                        .filter(entry -> entry.action() == SpreadsheetImportResult.ImportAction.CREATE)
+                        .toList(),
+                true);
+        appendEntrySection(
+                detail,
+                "Updates:",
+                result.getEntries().stream()
+                        .filter(entry -> entry.action() == SpreadsheetImportResult.ImportAction.UPDATE)
+                        .toList(),
+                false);
+        return detail.toString().trim();
+    }
+
+    private static void appendEntrySection(
+            StringBuilder detail,
+            String heading,
+            java.util.List<SpreadsheetImportResult.SpreadsheetImportEntry> entries,
+            boolean createSection) {
+        if (entries.isEmpty()) {
+            return;
+        }
+        detail.append(heading).append('\n');
+        for (SpreadsheetImportResult.SpreadsheetImportEntry entry : entries) {
+            detail.append("- ");
+            if (createSection) {
+                detail.append(VehicleIdentity.label(entry.vehicle()))
+                        .append(" (")
                         .append(entry.vehicleId())
+                        .append(", ")
+                        .append(entry.changedFieldCount())
+                        .append(" field")
+                        .append(entry.changedFieldCount() == 1 ? "" : "s")
+                        .append(")");
+            } else {
+                detail.append(entry.vehicleId())
                         .append(" (")
                         .append(entry.changedFieldCount())
                         .append(" changed field")
                         .append(entry.changedFieldCount() == 1 ? "" : "s")
-                        .append(")\n");
+                        .append(")");
             }
+            detail.append('\n');
         }
-        return detail.toString().trim();
+        detail.append('\n');
     }
 }

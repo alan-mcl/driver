@@ -28,9 +28,9 @@ The first columns are:
 
 | Column | Notes |
 |--------|-------|
-| `id` | Vehicle UUID; required for import |
-| `make` | |
-| `model` | |
+| `id` | Vehicle UUID; optional for new vehicles (auto-generated if blank) |
+| `make` | Required |
+| `model` | Required |
 | `derivative` | |
 | `pricing.priceZar` | Price in ZAR |
 | `pricing.priceDate` | ISO-8601 date (`YYYY-MM-DD`) |
@@ -59,7 +59,7 @@ Empty cells represent null/missing values.
 
 | Type | Export format | Import parsing |
 |------|---------------|----------------|
-| UUID | lowercase string | required for import rows |
+| UUID | lowercase string | optional for new rows; auto-generated if blank |
 | String | plain text | trimmed |
 | Integer | decimal digits | `Integer` |
 | Double | decimal number | `Double` |
@@ -71,19 +71,44 @@ Fields containing commas, quotes, or line breaks are quoted using standard CSV e
 
 ---
 
+## Vehicle identity and create vs update
+
+Driver treats **make + model + derivative** as the natural key for a vehicle record (derivative may be empty). This matches JSON import behaviour.
+
+| Scenario | Behaviour |
+|----------|-----------|
+| Identity matches an existing vehicle | Updates that record; CSV `id` is ignored |
+| No identity match, blank `id` | Creates a new vehicle with a generated UUID |
+| No identity match, valid unused `id` | Creates a new vehicle with that UUID |
+| No identity match, `id` already in use by another vehicle | Error |
+| Partial row on update | Only non-empty cells are merged; other stored fields are kept |
+| `status` on update | Existing workflow status is preserved |
+| `status` on create | Uses CSV value if present; defaults to `CANDIDATE` if blank |
+| Duplicate identities within the same file | Error |
+
+---
+
 ## Import rules
 
 1. Header row must match the expected schema exactly (name and order).
-2. Each data row must include a valid `id` matching an existing vehicle in the app.
-3. Empty cells are ignored on merge (existing values preserved).
-4. `status` is not updated from CSV import.
-5. Validation errors are reported per row before any changes are saved.
+2. Each data row must include `make` and `model`.
+3. Empty cells are ignored on merge (existing values preserved on update).
+4. Validation errors are reported per row before any changes are saved.
 
 ---
 
 ## Typical workflow
 
+### Update existing vehicles
+
 1. Export vehicles from **File → Export CSV…**
 2. Edit values in any spreadsheet editor or text tool
-3. Import updates via **File → Import CSV…**
+3. Import via **File → Import CSV…**
 4. Preview shows changed field counts per vehicle; confirm to merge and recalculate scores
+
+### Add new vehicles
+
+1. Start from an exported CSV (for correct headers) or copy the header row from an export
+2. Add rows with `make` and `model` filled in; leave `id` blank unless you want a specific UUID
+3. Fill in any known specification fields; leave others blank
+4. Import via **File → Import CSV…** — preview shows new vs update counts
