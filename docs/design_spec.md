@@ -341,22 +341,28 @@ Negative clearance means the body is wider than the opening at that height. Miss
 
 ## Scoring Profiles
 
-Users may define multiple profiles.
+Users may define multiple scoring profiles. Each profile selects four top base metrics (from the eight available), assigns profile-level weights totalling 100, and defines a fifth aggregate metric (custom name, profile weight, and composition from the remaining four base metrics).
 
-Examples:
+**Implemented:**
+
+- Toolbar profile selector — switch active profile; scores reload live
+- **Config → Manage Profiles…** — create, duplicate, edit, and delete profiles
+- Active profile persisted in `data/app-config.json`
+- Family Focused profile seeded on first run
+
+**Examples** (not seeded; users create their own via Manage Profiles):
 
 - Budget Focused
-- Family Focused
 - Executive
 - Daily Commuter
 
-Each profile defines metric weightings.
-
-Total score:
+Overall score:
 
 ```text
-sum(metricScore × weight)
+sum(metricScore × profileWeight) / sum(profileWeight)
 ```
+
+Renormalizes over metrics with non-null scores. See [scoring_spec.md](scoring_spec.md) for formulae.
 
 ---
 

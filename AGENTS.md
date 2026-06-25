@@ -47,6 +47,8 @@ driver/
 ├── data/                              Runtime state (gitignored)
 │   ├── vehicles/{uuid}.json
 │   ├── profiles/{uuid}.json
+│   ├── app-config.json                Active scoring profile id
+│   ├── garage-config.json
 │   └── test-drives/{uuid}.json
 └── docs/
     ├── design_spec.md

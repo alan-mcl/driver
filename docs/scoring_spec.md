@@ -443,7 +443,9 @@ Seeded by `DefaultProfileSeeder` (UUID `6ba7b810-9dad-11d1-80b4-00c04fd430c8`):
 
 Aggregate components (Comfort, Daily Driver, Technology, Prestige): 15%, 15%, 15%, 55% respectively.
 
-The active profile is fully configurable via **Config → Manage Profiles…** or the toolbar profile selector (profile name, top-metric selection, aggregate name/weight, and aggregate composition). The active profile id is persisted in `data/app-config.json`. Legacy profiles with separate Comfort, Daily Driver, Technology, and Prestige profile weights are migrated automatically (their weights are summed into the aggregate slot). Profiles missing `aggregateName` or `aggregateComponents` are backfilled with `"Awesomeness"` and the default composition on load.
+The active profile is fully configurable via **Config → Manage Profiles…** or the toolbar profile selector (profile name, top-metric selection, aggregate name/weight, and aggregate composition). The active profile id is persisted in `data/app-config.json`. Switching profiles reloads vehicle scores live without re-importing vehicles.
+
+**Legacy migration:** pre-Awesomeness profiles that list Comfort, Daily Driver, Technology, and/or Prestige as separate profile-level weights (without a five-slot structure) are migrated automatically — those weights are summed into the aggregate slot. Profiles that already use the five-slot format (four top base metrics plus `AWESOMENESS`) are not re-migrated, even when Technology or Prestige are chosen as top metrics. Profiles missing `aggregateName` or `aggregateComponents` are backfilled with `"Awesomeness"` and the default composition on load.
 
 Additional profiles are stored as JSON in `data/profiles/{uuid}.json`.
 

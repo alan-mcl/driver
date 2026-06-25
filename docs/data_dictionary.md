@@ -322,7 +322,7 @@ Headline metric scores are stored as 0-100. `scorePer100k` is unbounded.
 
 ## Scoring Profile
 
-Defines metric weightings for the active scoring profile.
+Defines metric weightings. Multiple profiles may exist; one is active at a time (see App Config).
 
 | Field | Type | Required |
 |---------|---------|---------|
@@ -336,9 +336,9 @@ Defines metric weightings for the active scoring profile.
 
 `aggregateComponents` contains exactly four base metrics **not** chosen as top metrics, with weights totalling 100. These define how the aggregate score is calculated.
 
-The eight **base metrics** are: `SAFETY`, `RUNNING_COST`, `RELIABILITY`, `COMFORT`, `PERFORMANCE`, `DAILY_DRIVER`, `TECHNOLOGY`, `PRESTIGE`. Each profile partitions them into four top and four aggregate components.
+The eight **base metrics** are: `SAFETY`, `RUNNING_COST`, `RELIABILITY`, `COMFORT`, `PERFORMANCE`, `DAILY_DRIVER`, `TECHNOLOGY`, `PRESTIGE`. Each profile partitions them into four top and four aggregate components. Any of the eight may be chosen as top metrics (including Technology and Prestige).
 
-Profiles are stored as JSON in `data/profiles/{uuid}.json`.
+Profiles are stored as JSON in `data/profiles/{uuid}.json`. Managed via the toolbar profile selector and **Config → Manage Profiles…** (create, duplicate, edit, delete).
 
 ---
 

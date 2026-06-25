@@ -31,7 +31,8 @@ java -jar target/driver-1.1.jar
 On first run, Driver creates a `data/` directory in the current working directory (gitignored):
 
 - `data/vehicles/{uuid}.json` — vehicle records
-- `data/profiles/{uuid}.json` — scoring profile(s)
+- `data/profiles/{uuid}.json` — scoring profiles (metric weights and aggregate composition)
+- `data/app-config.json` — active scoring profile id
 - `data/garage-config.json` — garage dimensions for clearance checks
 
 Back up `data/` to preserve your research. Run the JAR from a directory where you want `data/` to live.
@@ -41,7 +42,8 @@ Back up `data/` to preserve your research. Run the JAR from a directory where yo
 - Import vehicles from JSON or CSV; export fleet to CSV
 - Export selected vehicles to an offline Reveal.js marketing presentation (File → Export Presentation…)
 - Filter and sort by price, body type, fuel type, scores, and garage clearance
-- Weighted scoring with configurable metric weights (Config → Scoring Weights…)
+- Multiple scoring profiles with toolbar selector; create, duplicate, edit, and delete via **Config → Manage Profiles…**
+- Configurable top metrics, aggregate name/weight, and aggregate composition per profile
 - Star ratings and scatter plot for fleet comparison
 - Freeform notes per vehicle
 

@@ -16,8 +16,6 @@ Some items below are still described in `design_spec.md` but were deliberately d
 
 ## Scoring profiles
 
-Multi-profile management is available via the toolbar profile selector and **Config → Manage Profiles…** (create, duplicate, edit, delete). The active profile selection is persisted in `data/app-config.json`. Switching profiles reloads vehicle scores live.
-
 - Additional seed profiles: Budget Focused, Executive, Daily Commuter (Family Focused is seeded today)
 - Historical score tracking across profile changes
 - Per-profile shortlists
