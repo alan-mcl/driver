@@ -57,7 +57,10 @@ public class MainFrame extends JFrame {
         super(APP_NAME);
         this.services = services;
         this.listPanel = new VehicleListPanel(services.activeProfile, services.garageDimensions);
-        this.detailPanel = new VehicleDetailPanel(services.scoringDataReportService, services.activeProfile);
+        this.detailPanel = new VehicleDetailPanel(
+                services.scoringDataReportService,
+                services.brandReliabilityConfigService,
+                services.activeProfile);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -163,6 +166,10 @@ public class MainFrame extends JFrame {
         garageDimensionsItem.addActionListener(e -> openGarageDimensionsDialog());
         configMenu.add(garageDimensionsItem);
 
+        JMenuItem brandReliabilityItem = new JMenuItem("Brand Reliability…");
+        brandReliabilityItem.addActionListener(e -> openBrandReliabilityDialog());
+        configMenu.add(brandReliabilityItem);
+
         JMenu viewMenu = new JMenu("View");
         viewMenu.setMnemonic(KeyEvent.VK_V);
 
@@ -245,6 +252,27 @@ public class MainFrame extends JFrame {
     private void openGarageDimensionsDialog() {
         GarageDimensionsDialog dialog = new GarageDimensionsDialog(this, services, saved -> {
             listPanel.setGarageDimensions(saved);
+        });
+        dialog.setVisible(true);
+    }
+
+    private void openBrandReliabilityDialog() {
+        BrandReliabilityDialog dialog = new BrandReliabilityDialog(this, services, ignored -> {
+            UUID selectedId = listPanel.getSelectedVehicle() != null ? listPanel.getSelectedVehicle().getId() : null;
+            BackgroundTasks.run(
+                    this,
+                    () -> services.vehicleService.findAll(services.activeProfile),
+                    vehicles -> {
+                        applyVehicleList(vehicles);
+                        if (selectedId != null) {
+                            listPanel.setSelectedVehicle(selectedId);
+                            Vehicle selected = listPanel.getSelectedVehicle();
+                            if (selected != null) {
+                                detailPanel.loadVehicle(selected, persistedIds.contains(selected.getId()));
+                            }
+                        }
+                    },
+                    error -> BackgroundTasks.showError(this, "Load Failed", error));
         });
         dialog.setVisible(true);
     }

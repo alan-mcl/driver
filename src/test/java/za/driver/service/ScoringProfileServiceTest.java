@@ -119,7 +119,7 @@ class ScoringProfileServiceTest {
 
         Vehicle vehicle = ScoringTestFixtures.fullVehicle();
         ManualScoreOverrides manualOverrides = new ManualScoreOverrides();
-        manualOverrides.setReliabilityScore(90.0);
+        manualOverrides.setReliabilityManualEstimate(90.0);
         vehicle.setManualScoreOverrides(manualOverrides);
         ScoringService scoringService = new ScoringService();
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, profile, ScoringOverrides.fromVehicle(vehicle)));
@@ -130,7 +130,27 @@ class ScoringProfileServiceTest {
         Vehicle reloaded = vehicleRepository.findById(vehicle.getId()).orElseThrow();
         DerivedMetrics metrics = reloaded.getDerivedMetrics();
         assertNotNull(metrics);
-        assertEquals(90.0, metrics.getReliabilityScore());
+        assertEquals(91.0, metrics.getReliabilityHeuristic());
+        assertEquals(90.0, reloaded.getManualScoreOverrides().getReliabilityManualEstimate());
+        assertEquals(91.0, metrics.getReliabilityScore());
+    }
+
+    @Test
+    void recalculateAllVehicles_blendsManualEstimateWithHeuristic() throws IOException {
+        profileRepository.save(profile);
+
+        Vehicle vehicle = ScoringTestFixtures.fullVehicle();
+        ManualScoreOverrides manualOverrides = new ManualScoreOverrides();
+        manualOverrides.setReliabilityManualEstimate(88.0);
+        vehicle.setManualScoreOverrides(manualOverrides);
+        ScoringService scoringService = new ScoringService();
+        vehicle.setDerivedMetrics(scoringService.calculate(vehicle, profile, ScoringOverrides.fromVehicle(vehicle)));
+        vehicleRepository.save(vehicle);
+
+        profileService.recalculateAllVehicles(profile);
+
+        Vehicle reloaded = vehicleRepository.findById(vehicle.getId()).orElseThrow();
+        assertEquals(90.0, reloaded.getDerivedMetrics().getReliabilityScore());
     }
 
     @Test
@@ -146,6 +166,7 @@ class ScoringProfileServiceTest {
 
         Vehicle reloaded = vehicleRepository.findById(vehicle.getId()).orElseThrow();
         assertEquals(91.0, reloaded.getDerivedMetrics().getReliabilityScore());
+        assertEquals(91.0, reloaded.getDerivedMetrics().getReliabilityHeuristic());
         assertNull(reloaded.getManualScoreOverrides());
     }
 

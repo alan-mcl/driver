@@ -36,7 +36,10 @@ import za.driver.scoring.ScoringOverrides;
 
 public final class VehicleSpreadsheetMapper {
 
+    private static final String RELIABILITY_MANUAL_ESTIMATE_HEADER = "manualScoreOverrides.reliabilityManualEstimate";
+    private static final String RELIABILITY_HEURISTIC_HEADER = "derivedMetrics.reliabilityHeuristic";
     private static final String RELIABILITY_SCORE_HEADER = "derivedMetrics.reliabilityScore";
+    private static final String PRESTIGE_MANUAL_HEADER = "manualScoreOverrides.prestigeScore";
     private static final String PRESTIGE_SCORE_HEADER = "derivedMetrics.prestigeScore";
 
     private VehicleSpreadsheetMapper() {
@@ -77,6 +80,9 @@ public final class VehicleSpreadsheetMapper {
             if (!includeStatus && "status".equals(header)) {
                 continue;
             }
+            if (isExportOnlyHeader(header)) {
+                continue;
+            }
             String raw = row.getOrDefault(header, "");
             if (isBlank(raw)) {
                 continue;
@@ -112,12 +118,18 @@ public final class VehicleSpreadsheetMapper {
     }
 
     public static ScoringOverrides scoringOverridesFromRow(Map<String, String> row) {
-        Double reliability = parseOptionalDouble(row, RELIABILITY_SCORE_HEADER);
-        Double prestige = parseOptionalDouble(row, PRESTIGE_SCORE_HEADER);
+        Double reliability = parseOptionalDouble(row, RELIABILITY_MANUAL_ESTIMATE_HEADER);
+        Double prestige = parseOptionalDouble(row, PRESTIGE_MANUAL_HEADER);
         if (reliability == null && prestige == null) {
             return ScoringOverrides.none();
         }
         return ScoringOverrides.of(reliability, prestige);
+    }
+
+    private static boolean isExportOnlyHeader(String header) {
+        return RELIABILITY_HEURISTIC_HEADER.equals(header)
+                || RELIABILITY_SCORE_HEADER.equals(header)
+                || PRESTIGE_SCORE_HEADER.equals(header);
     }
 
     static Object readValue(Vehicle vehicle, String header) {
@@ -197,7 +209,10 @@ public final class VehicleSpreadsheetMapper {
             case "ownership.maintenancePlanKm" -> nestedOwnership(vehicle).getMaintenancePlanKm();
             case "ownership.partsSupportScore" -> nestedOwnership(vehicle).getPartsSupportScore();
             case "ownership.localProduction" -> nestedOwnership(vehicle).getLocalProduction();
+            case RELIABILITY_MANUAL_ESTIMATE_HEADER -> manualReliabilityEstimate(vehicle);
+            case RELIABILITY_HEURISTIC_HEADER -> derivedReliabilityHeuristic(vehicle);
             case RELIABILITY_SCORE_HEADER -> derivedReliabilityScore(vehicle);
+            case PRESTIGE_MANUAL_HEADER -> manualPrestigeOverride(vehicle);
             case PRESTIGE_SCORE_HEADER -> derivedPrestigeScore(vehicle);
             case "pricing.priceZar" -> nestedPricing(vehicle).getPriceZar();
             case "pricing.priceDate" -> nestedPricing(vehicle).getPriceDate();
@@ -284,8 +299,11 @@ public final class VehicleSpreadsheetMapper {
             case "ownership.maintenancePlanKm" -> nestedOwnership(vehicle).setMaintenancePlanKm(Integer.valueOf(raw));
             case "ownership.partsSupportScore" -> nestedOwnership(vehicle).setPartsSupportScore(Integer.valueOf(raw));
             case "ownership.localProduction" -> nestedOwnership(vehicle).setLocalProduction(parseBoolean(raw));
-            case RELIABILITY_SCORE_HEADER -> nestedManualScoreOverrides(vehicle).setReliabilityScore(Double.valueOf(raw));
-            case PRESTIGE_SCORE_HEADER -> nestedManualScoreOverrides(vehicle).setPrestigeScore(Double.valueOf(raw));
+            case RELIABILITY_MANUAL_ESTIMATE_HEADER ->
+                    nestedManualScoreOverrides(vehicle).setReliabilityManualEstimate(Double.valueOf(raw));
+            case PRESTIGE_MANUAL_HEADER -> nestedManualScoreOverrides(vehicle).setPrestigeScore(Double.valueOf(raw));
+            case RELIABILITY_HEURISTIC_HEADER, RELIABILITY_SCORE_HEADER, PRESTIGE_SCORE_HEADER -> {
+            }
             case "pricing.priceZar" -> nestedPricing(vehicle).setPriceZar(new BigDecimal(raw));
             case "pricing.priceDate" -> nestedPricing(vehicle).setPriceDate(parseDate(raw));
             case "source.sourceType" -> nestedSource(vehicle).setSourceType(SourceType.valueOf(raw));
@@ -344,23 +362,30 @@ public final class VehicleSpreadsheetMapper {
         return Double.valueOf(raw.trim());
     }
 
+    private static Double derivedReliabilityHeuristic(Vehicle vehicle) {
+        if (vehicle.getDerivedMetrics() != null && vehicle.getDerivedMetrics().getReliabilityHeuristic() != null) {
+            return vehicle.getDerivedMetrics().getReliabilityHeuristic();
+        }
+        return null;
+    }
+
     private static Double derivedReliabilityScore(Vehicle vehicle) {
         if (vehicle.getDerivedMetrics() != null && vehicle.getDerivedMetrics().getReliabilityScore() != null) {
             return vehicle.getDerivedMetrics().getReliabilityScore();
         }
-        return manualReliabilityOverride(vehicle);
+        return null;
     }
 
     private static Double derivedPrestigeScore(Vehicle vehicle) {
         if (vehicle.getDerivedMetrics() != null && vehicle.getDerivedMetrics().getPrestigeScore() != null) {
             return vehicle.getDerivedMetrics().getPrestigeScore();
         }
-        return manualPrestigeOverride(vehicle);
+        return null;
     }
 
-    private static Double manualReliabilityOverride(Vehicle vehicle) {
+    private static Double manualReliabilityEstimate(Vehicle vehicle) {
         ManualScoreOverrides overrides = vehicle.getManualScoreOverrides();
-        return overrides == null ? null : overrides.getReliabilityScore();
+        return overrides == null ? null : overrides.getReliabilityManualEstimate();
     }
 
     private static Double manualPrestigeOverride(Vehicle vehicle) {

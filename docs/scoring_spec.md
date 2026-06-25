@@ -27,7 +27,7 @@ Driver produces **nine headline metrics**, each on a **0–100** scale, plus a w
 |--------|-----------|------------|---------------------|
 | Safety | `SAFETY` | `SafetyCalculator` | Yes |
 | Running Cost | `RUNNING_COST` | `RunningCostCalculator` | Yes |
-| Reliability | `RELIABILITY` | Manual override only | Yes |
+| Reliability | `RELIABILITY` | Heuristic + optional manual estimate (50/50 blend) | Yes |
 | Comfort | `COMFORT` | `ComfortCalculator` | No (Awesomeness component) |
 | Performance | `PERFORMANCE` | `PerformanceCalculator` | Yes |
 | Daily Driver | `DAILY_DRIVER` | `DailyDriverCalculator` | No (Awesomeness component) |
@@ -298,10 +298,10 @@ Reputation-based estimate of dependability, repairability, and ease of ownership
 
 ### Formula
 
-All three components are required; if any is missing → `reliabilityScore = null`.
+All three heuristic components are required; if any is missing → `reliabilityHeuristic = null`.
 
 ```text
-reliabilityScore = round(
+reliabilityHeuristic = round(
   brandScore × 0.50 +
   powertrainScore × 0.20 +
   partsSupportScore × 0.30
@@ -309,9 +309,19 @@ reliabilityScore = round(
 clamp to [0, 100]
 ```
 
+The headline **`reliabilityScore`** blends the heuristic with an optional manual estimate:
+
+```text
+When both present:
+  reliabilityScore = round(0.50 × reliabilityHeuristic + 0.50 × reliabilityManualEstimate)
+
+When only one present:
+  reliabilityScore = that value (clamped to [0, 100])
+```
+
 | Component | Source | Weight |
 |-----------|--------|--------|
-| Brand | `brand-reliability.json` lookup by `vehicle.make` | 50% |
+| Brand | Brand reliability config lookup by `vehicle.make` | 50% |
 | Powertrain | Derived from `engine.*`, `transmission.type` | 20% |
 | Parts support | `ownership.partsSupportScore` (manual) | 30% |
 
@@ -319,7 +329,9 @@ clamp to [0, 100]
 
 ### Brand lookup
 
-Case-insensitive match on `vehicle.make`. Unknown brand → reliability score unavailable.
+Bundled defaults live in `src/main/resources/config/brand-reliability.json`. Users may override or extend brand entries via **Config → Brand Reliability…**, persisted to `data/brand-reliability-config.json`. User entries overlay bundled defaults at runtime.
+
+Case-insensitive match on `vehicle.make`. Unknown brand → heuristic unavailable.
 
 Each brand entry provides `reliability` (0–100) and `confidence` (0–100).
 
@@ -349,11 +361,13 @@ Missing transmission → no transmission adjustment. Missing engine fuel type **
 
 Display bands: 80–100 High, 50–79 Medium, 0–49 Low.
 
-### Manual override
+### Manual estimate
 
-Optional per-vehicle override stored on `vehicle.manualScoreOverrides.reliabilityScore`. UI: **Reliability override** spinner. Replaces computed score when set.
+Optional per-vehicle estimate stored on `vehicle.manualScoreOverrides.reliabilityManualEstimate`. UI: **Reliability manual estimate** spinner. Blended 50/50 with the heuristic when both are set; otherwise the available value is used.
 
-CSV column `derivedMetrics.reliabilityScore` sets the override when non-blank (exports override value only, not computed score).
+Legacy JSON field `reliabilityScore` under `manualScoreOverrides` is accepted via Jackson alias on import/load.
+
+CSV column `manualScoreOverrides.reliabilityManualEstimate` round-trips on import/export. Export-only columns `derivedMetrics.reliabilityHeuristic` and `derivedMetrics.reliabilityScore` are ignored on import.
 
 ---
 

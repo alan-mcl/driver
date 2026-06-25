@@ -1,19 +1,22 @@
 package za.driver.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class ManualScoreOverrides {
 
-    private Double reliabilityScore;
+    @JsonAlias("reliabilityScore")
+    private Double reliabilityManualEstimate;
     private Double prestigeScore;
 
     public ManualScoreOverrides() {
     }
 
-    public Double getReliabilityScore() {
-        return reliabilityScore;
+    public Double getReliabilityManualEstimate() {
+        return reliabilityManualEstimate;
     }
 
-    public void setReliabilityScore(Double reliabilityScore) {
-        this.reliabilityScore = reliabilityScore;
+    public void setReliabilityManualEstimate(Double reliabilityManualEstimate) {
+        this.reliabilityManualEstimate = reliabilityManualEstimate;
     }
 
     public Double getPrestigeScore() {

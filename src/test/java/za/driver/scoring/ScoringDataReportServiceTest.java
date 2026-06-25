@@ -76,8 +76,8 @@ class ScoringDataReportServiceTest {
 
         String report = reportService.generateReport(vehicle, overrides);
 
-        assertTrue(report.contains("Reliability (score: 90)"));
-        assertTrue(report.contains("Manual override active."));
+        assertTrue(report.contains("Reliability (score: 91)"));
+        assertTrue(report.contains("Manual estimate: 90"));
         assertTrue(report.contains("Prestige (score: 50.0)"));
         assertTrue(report.contains("Manual override set."));
     }

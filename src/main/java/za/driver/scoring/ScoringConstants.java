@@ -87,6 +87,9 @@ public final class ScoringConstants {
     public static final double RELIABILITY_POWERTRAIN_WEIGHT = 0.20;
     public static final double RELIABILITY_PARTS_SUPPORT_WEIGHT = 0.30;
 
+    public static final double RELIABILITY_HEURISTIC_WEIGHT = 0.50;
+    public static final double RELIABILITY_MANUAL_WEIGHT = 0.50;
+
     public static final double POWERTRAIN_BASE_SCORE = 75.0;
     public static final double POWERTRAIN_NA_PETROL_ADJ = 10.0;
     public static final double POWERTRAIN_NA_DIESEL_ADJ = 8.0;

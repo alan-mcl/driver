@@ -3,11 +3,14 @@ package za.driver.scoring;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import za.driver.model.BrandReliabilityConfig;
+import za.driver.model.BrandReliabilityEntry;
 
 public final class BrandReliabilityLookup {
 
@@ -28,40 +31,82 @@ public final class BrandReliabilityLookup {
             if (input == null) {
                 throw new IllegalStateException("Missing classpath resource /config/brand-reliability.json");
             }
-            return load(input);
+            return fromConfig(readConfig(input));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to load brand reliability config", ex);
         }
     }
 
-    static BrandReliabilityLookup load(InputStream input) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(input);
-        JsonNode brandsNode = root.get("brands");
-        if (brandsNode == null || !brandsNode.isObject()) {
-            throw new IOException("brand-reliability.json must contain a brands object");
+    public static BrandReliabilityConfig loadBundledConfig() {
+        try (InputStream input = BrandReliabilityLookup.class.getResourceAsStream("/config/brand-reliability.json")) {
+            if (input == null) {
+                throw new IllegalStateException("Missing classpath resource /config/brand-reliability.json");
+            }
+            return readConfig(input);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to load brand reliability config", ex);
+        }
+    }
+
+    public static BrandReliabilityLookup merge(BrandReliabilityConfig bundled, BrandReliabilityConfig user) {
+        return fromConfig(overlayConfigs(bundled, user));
+    }
+
+    public static BrandReliabilityConfig overlayConfigs(BrandReliabilityConfig bundled, BrandReliabilityConfig user) {
+        BrandReliabilityConfig merged = new BrandReliabilityConfig();
+        Map<String, BrandReliabilityEntry> brands = new LinkedHashMap<>();
+        if (bundled != null && bundled.getBrands() != null) {
+            brands.putAll(bundled.getBrands());
+        }
+        if (user != null && user.getBrands() != null) {
+            brands.putAll(user.getBrands());
+        }
+        merged.setBrands(brands);
+
+        Map<String, String> aliases = new LinkedHashMap<>();
+        if (bundled != null && bundled.getAliases() != null) {
+            aliases.putAll(bundled.getAliases());
+        }
+        if (user != null && user.getAliases() != null) {
+            aliases.putAll(user.getAliases());
+        }
+        merged.setAliases(aliases);
+        return merged;
+    }
+
+    public static BrandReliabilityLookup fromConfig(BrandReliabilityConfig config) {
+        if (config == null || config.getBrands() == null) {
+            return new BrandReliabilityLookup(Map.of());
         }
 
         Map<String, BrandEntry> brands = new HashMap<>();
-        brandsNode.fields().forEachRemaining(entry -> {
-            JsonNode value = entry.getValue();
-            int reliability = value.get("reliability").asInt();
-            int confidence = value.get("confidence").asInt();
-            brands.put(normalizeMake(entry.getKey()), new BrandEntry(entry.getKey(), reliability, confidence));
+        config.getBrands().forEach((name, entry) -> {
+            if (entry == null) {
+                return;
+            }
+            brands.put(normalizeMake(name), new BrandEntry(name, entry.getReliability(), entry.getConfidence()));
         });
 
-        JsonNode aliasesNode = root.get("aliases");
-        if (aliasesNode != null && aliasesNode.isObject()) {
-            aliasesNode.fields().forEachRemaining(entry -> {
-                String canonicalName = entry.getValue().asText();
+        Map<String, String> aliases = config.getAliases();
+        if (aliases != null) {
+            aliases.forEach((alias, canonicalName) -> {
                 BrandEntry canonical = brands.get(normalizeMake(canonicalName));
                 if (canonical != null) {
-                    brands.put(normalizeMake(entry.getKey()), canonical);
+                    brands.put(normalizeMake(alias), canonical);
                 }
             });
         }
 
         return new BrandReliabilityLookup(brands);
+    }
+
+    static BrandReliabilityLookup load(InputStream input) throws IOException {
+        return fromConfig(readConfig(input));
+    }
+
+    private static BrandReliabilityConfig readConfig(InputStream input) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(input, BrandReliabilityConfig.class);
     }
 
     public Integer reliabilityScore(String make) {

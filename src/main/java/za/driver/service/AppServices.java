@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import za.driver.import_.ImportService;
 import za.driver.model.GarageDimensions;
 import za.driver.model.ScoringProfile;
+import za.driver.persistence.BrandReliabilityConfigRepository;
 import za.driver.persistence.GarageConfigRepository;
 import za.driver.persistence.ScoringProfileRepository;
 import za.driver.persistence.VehicleRepository;
@@ -26,6 +27,7 @@ public final class AppServices {
     public final ScoringDataReportService scoringDataReportService;
     public final ScoringProfileService profileService;
     public final GarageConfigService garageConfigService;
+    public final BrandReliabilityConfigService brandReliabilityConfigService;
     public final ScoringProfile activeProfile;
     public final GarageDimensions garageDimensions;
     public final Path dataRoot;
@@ -39,6 +41,7 @@ public final class AppServices {
             ScoringDataReportService scoringDataReportService,
             ScoringProfileService profileService,
             GarageConfigService garageConfigService,
+            BrandReliabilityConfigService brandReliabilityConfigService,
             ScoringProfile activeProfile,
             Path dataRoot) {
         this.vehicleService = vehicleService;
@@ -49,6 +52,7 @@ public final class AppServices {
         this.scoringDataReportService = scoringDataReportService;
         this.profileService = profileService;
         this.garageConfigService = garageConfigService;
+        this.brandReliabilityConfigService = brandReliabilityConfigService;
         this.activeProfile = activeProfile;
         this.garageDimensions = garageConfigService.getGarageDimensions();
         this.dataRoot = dataRoot;
@@ -58,8 +62,11 @@ public final class AppServices {
         Path dataRoot = Paths.get("data").toAbsolutePath().normalize();
         VehicleRepository vehicleRepository = new VehicleRepository(dataRoot);
         ScoringProfileRepository profileRepository = new ScoringProfileRepository(dataRoot);
-        ScoringService scoringService = new ScoringService();
-        ScoringDataReportService scoringDataReportService = new ScoringDataReportService();
+        BrandReliabilityConfigService brandReliabilityConfigService =
+                new BrandReliabilityConfigService(new BrandReliabilityConfigRepository(dataRoot));
+        ScoringService scoringService = new ScoringService(brandReliabilityConfigService);
+        ScoringDataReportService scoringDataReportService =
+                new ScoringDataReportService(brandReliabilityConfigService);
         VehicleService vehicleService = new VehicleService(vehicleRepository, scoringService);
         ScoringProfileService profileService = new ScoringProfileService(
                 profileRepository,
@@ -81,6 +88,7 @@ public final class AppServices {
                 scoringDataReportService,
                 profileService,
                 garageConfigService,
+                brandReliabilityConfigService,
                 activeProfile,
                 dataRoot);
     }

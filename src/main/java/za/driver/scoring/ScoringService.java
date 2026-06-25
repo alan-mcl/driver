@@ -10,19 +10,24 @@ import za.driver.model.Pricing;
 import za.driver.model.ScoringProfile;
 import za.driver.model.ScoringWeight;
 import za.driver.model.Vehicle;
+import za.driver.service.BrandReliabilityConfigService;
 
 public class ScoringService {
 
     private final List<MetricCalculator> calculators;
-    private final ReliabilityCalculator reliabilityCalculator;
+    private final BrandReliabilityConfigService brandReliabilityConfigService;
+    private final PowertrainReliabilityScorer powertrainScorer;
 
     public ScoringService() {
-        ReliabilityCalculator reliability = new ReliabilityCalculator();
-        this.reliabilityCalculator = reliability;
+        this((BrandReliabilityConfigService) null);
+    }
+
+    public ScoringService(BrandReliabilityConfigService brandReliabilityConfigService) {
+        this.brandReliabilityConfigService = brandReliabilityConfigService;
+        this.powertrainScorer = new PowertrainReliabilityScorer();
         this.calculators = List.of(
                 new SafetyCalculator(),
                 new RunningCostCalculator(),
-                reliability,
                 new ComfortCalculator(),
                 new PerformanceCalculator(),
                 new DailyDriverCalculator(),
@@ -32,20 +37,25 @@ public class ScoringService {
 
     ScoringService(List<MetricCalculator> calculators) {
         this.calculators = List.copyOf(calculators);
-        this.reliabilityCalculator = calculators.stream()
-                .filter(ReliabilityCalculator.class::isInstance)
-                .map(ReliabilityCalculator.class::cast)
-                .findFirst()
-                .orElse(new ReliabilityCalculator());
+        this.brandReliabilityConfigService = null;
+        this.powertrainScorer = new PowertrainReliabilityScorer();
     }
 
     ScoringService(List<MetricCalculator> calculators, ReliabilityCalculator reliabilityCalculator) {
         this.calculators = List.copyOf(calculators);
-        this.reliabilityCalculator = reliabilityCalculator;
+        this.brandReliabilityConfigService = null;
+        this.powertrainScorer = new PowertrainReliabilityScorer();
     }
 
     public ReliabilityCalculator reliabilityCalculator() {
-        return reliabilityCalculator;
+        return currentReliabilityCalculator();
+    }
+
+    private ReliabilityCalculator currentReliabilityCalculator() {
+        if (brandReliabilityConfigService != null) {
+            return new ReliabilityCalculator(brandReliabilityConfigService.getMergedLookup(), powertrainScorer);
+        }
+        return new ReliabilityCalculator(BrandReliabilityLookup.getDefault(), powertrainScorer);
     }
 
     public DerivedMetrics calculate(Vehicle vehicle, ScoringProfile profile) {
@@ -63,18 +73,23 @@ public class ScoringService {
         }
 
         if (overrides != null) {
-            if (overrides.getReliabilityScore() != null) {
-                scores.put(Metric.RELIABILITY, ScoreUtil.clamp(overrides.getReliabilityScore()));
-            }
             if (overrides.getPrestigeScore() != null) {
                 scores.put(Metric.PRESTIGE, ScoreUtil.clamp(overrides.getPrestigeScore()));
             }
         }
 
+        Double reliabilityHeuristic = currentReliabilityCalculator().calculate(vehicle);
+        Double reliabilityManualEstimate = overrides != null ? overrides.getReliabilityManualEstimate() : null;
+        Double reliabilityScore = ReliabilityScoreBlender.blend(reliabilityHeuristic, reliabilityManualEstimate);
+        if (reliabilityScore != null) {
+            scores.put(Metric.RELIABILITY, reliabilityScore);
+        }
+
         DerivedMetrics metrics = new DerivedMetrics();
         metrics.setSafetyScore(scores.get(Metric.SAFETY));
         metrics.setRunningCostScore(scores.get(Metric.RUNNING_COST));
-        metrics.setReliabilityScore(scores.get(Metric.RELIABILITY));
+        metrics.setReliabilityHeuristic(reliabilityHeuristic);
+        metrics.setReliabilityScore(reliabilityScore);
         metrics.setComfortScore(scores.get(Metric.COMFORT));
         metrics.setPerformanceScore(scores.get(Metric.PERFORMANCE));
         metrics.setDailyDriverScore(scores.get(Metric.DAILY_DRIVER));
@@ -87,7 +102,7 @@ public class ScoringService {
             scores.put(Metric.AWESOMENESS, awesomenessScore);
         }
         metrics.setAwesomenessScore(awesomenessScore);
-        metrics.setReliabilityConfidence(reliabilityCalculator.confidenceScore(vehicle));
+        metrics.setReliabilityConfidence(currentReliabilityCalculator().confidenceScore(vehicle));
         Double overallScore = calculateOverall(scores, profile);
         metrics.setOverallScore(overallScore);
         metrics.setScorePer100k(calculateScorePer100k(vehicle, overallScore));

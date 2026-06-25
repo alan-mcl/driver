@@ -42,14 +42,17 @@ Included fields: all raw vehicle specification fields from the data dictionary, 
 - `derivedMetrics.*` (calculated by the app), **except** manually maintained scores listed below
 - `source.importedDate` (stamped on save)
 
-**Manual score exceptions** (after `ownership.localProduction`, before `source.sourceType`):
+**Manual score columns** (after `ownership.localProduction`, before `source.sourceType`):
 
-| Column | Notes |
-|--------|-------|
-| `derivedMetrics.reliabilityScore` | Manual override only; empty if no override set |
-| `derivedMetrics.prestigeScore` | Manual override only; empty if no override set |
+| Column | Import | Export |
+|--------|--------|--------|
+| `manualScoreOverrides.reliabilityManualEstimate` | Round-trips | Manual estimate only; empty if unset |
+| `derivedMetrics.reliabilityHeuristic` | Ignored | Computed heuristic |
+| `derivedMetrics.reliabilityScore` | Ignored | Final blended reliability score |
+| `manualScoreOverrides.prestigeScore` | Round-trips | Manual prestige override only; empty if unset |
+| `derivedMetrics.prestigeScore` | Ignored | Final prestige score |
 
-These columns set `vehicle.manualScoreOverrides` on import. They export override values only (not computed reliability scores). Empty cells preserve the existing override; computed reliability is recalculated on save.
+Import reads manual estimate/override columns into `vehicle.manualScoreOverrides`. Derived metric columns are export-only and are recalculated on save.
 
 Empty cells represent null/missing values.
 

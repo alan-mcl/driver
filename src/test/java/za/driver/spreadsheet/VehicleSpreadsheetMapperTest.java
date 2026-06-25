@@ -62,12 +62,14 @@ class VehicleSpreadsheetMapperTest {
     void toRowValues_exportsDerivedMetricScores() {
         var vehicle = ScoringTestFixtures.fullVehicle();
         DerivedMetrics metrics = new DerivedMetrics();
-        metrics.setReliabilityScore(91.0);
+        metrics.setReliabilityHeuristic(91.0);
+        metrics.setReliabilityScore(90.0);
         metrics.setPrestigeScore(72.0);
         vehicle.setDerivedMetrics(metrics);
 
         Map<String, String> row = VehicleSpreadsheetMapper.toRowMap(vehicle);
-        assertEquals("91.0", row.get("derivedMetrics.reliabilityScore"));
+        assertEquals("91.0", row.get("derivedMetrics.reliabilityHeuristic"));
+        assertEquals("90.0", row.get("derivedMetrics.reliabilityScore"));
         assertEquals("72.0", row.get("derivedMetrics.prestigeScore"));
     }
 
@@ -89,45 +91,60 @@ class VehicleSpreadsheetMapperTest {
     void toRowValues_exportsManualScoreOverrides() {
         var vehicle = ScoringTestFixtures.fullVehicle();
         DerivedMetrics metrics = new DerivedMetrics();
-        metrics.setReliabilityScore(91.0);
+        metrics.setReliabilityHeuristic(91.0);
+        metrics.setReliabilityScore(90.0);
         vehicle.setDerivedMetrics(metrics);
         ManualScoreOverrides overrides = new ManualScoreOverrides();
-        overrides.setReliabilityScore(88.0);
+        overrides.setReliabilityManualEstimate(88.0);
         overrides.setPrestigeScore(72.0);
         vehicle.setManualScoreOverrides(overrides);
 
         Map<String, String> row = VehicleSpreadsheetMapper.toRowMap(vehicle);
-        assertEquals("91.0", row.get("derivedMetrics.reliabilityScore"));
-        assertEquals("72.0", row.get("derivedMetrics.prestigeScore"));
+        assertEquals("88.0", row.get("manualScoreOverrides.reliabilityManualEstimate"));
+        assertEquals("91.0", row.get("derivedMetrics.reliabilityHeuristic"));
+        assertEquals("90.0", row.get("derivedMetrics.reliabilityScore"));
+        assertEquals("72.0", row.get("manualScoreOverrides.prestigeScore"));
     }
 
     @Test
     void fromRowMap_roundTripsManualScoreOverrides() {
         Map<String, String> row = Map.of(
                 "id", VEHICLE_ID.toString(),
-                "derivedMetrics.reliabilityScore", "90",
-                "derivedMetrics.prestigeScore", "50");
+                "manualScoreOverrides.reliabilityManualEstimate", "90",
+                "manualScoreOverrides.prestigeScore", "50");
 
         var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
-        assertEquals(90.0, parsed.getManualScoreOverrides().getReliabilityScore());
+        assertEquals(90.0, parsed.getManualScoreOverrides().getReliabilityManualEstimate());
         assertEquals(50.0, parsed.getManualScoreOverrides().getPrestigeScore());
+    }
+
+    @Test
+    void fromRowMap_ignoresExportOnlyDerivedColumns() {
+        Map<String, String> row = Map.of(
+                "id", VEHICLE_ID.toString(),
+                "derivedMetrics.reliabilityHeuristic", "91",
+                "derivedMetrics.reliabilityScore", "90",
+                "derivedMetrics.prestigeScore", "72");
+
+        var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
+        assertNull(parsed.getManualScoreOverrides());
     }
 
     @Test
     void scoringOverridesFromRow_includesOnlyNonBlankCells() {
         ScoringOverrides both = VehicleSpreadsheetMapper.scoringOverridesFromRow(Map.of(
-                "derivedMetrics.reliabilityScore", "88",
-                "derivedMetrics.prestigeScore", "72"));
-        assertEquals(88.0, both.getReliabilityScore());
+                "manualScoreOverrides.reliabilityManualEstimate", "88",
+                "manualScoreOverrides.prestigeScore", "72"));
+        assertEquals(88.0, both.getReliabilityManualEstimate());
         assertEquals(72.0, both.getPrestigeScore());
 
         ScoringOverrides reliabilityOnly = VehicleSpreadsheetMapper.scoringOverridesFromRow(Map.of(
-                "derivedMetrics.reliabilityScore", "88"));
-        assertEquals(88.0, reliabilityOnly.getReliabilityScore());
+                "manualScoreOverrides.reliabilityManualEstimate", "88"));
+        assertEquals(88.0, reliabilityOnly.getReliabilityManualEstimate());
         assertNull(reliabilityOnly.getPrestigeScore());
 
         ScoringOverrides none = VehicleSpreadsheetMapper.scoringOverridesFromRow(Map.of());
-        assertNull(none.getReliabilityScore());
+        assertNull(none.getReliabilityManualEstimate());
         assertNull(none.getPrestigeScore());
     }
 
@@ -137,7 +154,7 @@ class VehicleSpreadsheetMapperTest {
         ScoringOverrides partial = ScoringOverrides.of(90.0, null);
 
         ScoringOverrides merged = ScoringOverrides.merge(existing, partial);
-        assertEquals(90.0, merged.getReliabilityScore());
+        assertEquals(90.0, merged.getReliabilityManualEstimate());
         assertEquals(70.0, merged.getPrestigeScore());
     }
 }

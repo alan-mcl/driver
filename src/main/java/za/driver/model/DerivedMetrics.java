@@ -4,6 +4,7 @@ public class DerivedMetrics {
 
     private Double safetyScore;
     private Double runningCostScore;
+    private Double reliabilityHeuristic;
     private Double reliabilityScore;
     private Double comfortScore;
     private Double performanceScore;
@@ -32,6 +33,14 @@ public class DerivedMetrics {
 
     public void setRunningCostScore(Double runningCostScore) {
         this.runningCostScore = runningCostScore;
+    }
+
+    public Double getReliabilityHeuristic() {
+        return reliabilityHeuristic;
+    }
+
+    public void setReliabilityHeuristic(Double reliabilityHeuristic) {
+        this.reliabilityHeuristic = reliabilityHeuristic;
     }
 
     public Double getReliabilityScore() {

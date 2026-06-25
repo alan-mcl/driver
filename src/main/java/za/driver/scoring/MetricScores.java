@@ -1,12 +1,14 @@
 package za.driver.scoring;
 
 import za.driver.model.DerivedMetrics;
+import za.driver.model.ManualScoreOverrides;
 import za.driver.model.Metric;
 import za.driver.model.Vehicle;
+import za.driver.service.BrandReliabilityConfigService;
 
 public final class MetricScores {
 
-    private static final ReliabilityCalculator RELIABILITY_CALCULATOR = new ReliabilityCalculator();
+    private static final ReliabilityCalculator DEFAULT_RELIABILITY_CALCULATOR = new ReliabilityCalculator();
 
     private MetricScores() {
     }
@@ -31,8 +33,25 @@ public final class MetricScores {
     public static Double displayScore(Vehicle vehicle, DerivedMetrics metrics, Metric metric) {
         Double score = score(metrics, metric);
         if (score == null && metric == Metric.RELIABILITY && vehicle != null) {
-            score = RELIABILITY_CALCULATOR.calculate(vehicle);
+            score = liveReliabilityScore(vehicle, null);
         }
         return score;
+    }
+
+    public static Double liveReliabilityScore(Vehicle vehicle, BrandReliabilityConfigService brandConfigService) {
+        ReliabilityCalculator calculator = brandConfigService == null
+                ? DEFAULT_RELIABILITY_CALCULATOR
+                : new ReliabilityCalculator(brandConfigService.getMergedLookup(), new PowertrainReliabilityScorer());
+        Double heuristic = calculator.calculate(vehicle);
+        ManualScoreOverrides overrides = vehicle.getManualScoreOverrides();
+        Double manualEstimate = overrides == null ? null : overrides.getReliabilityManualEstimate();
+        return ReliabilityScoreBlender.blend(heuristic, manualEstimate);
+    }
+
+    public static Double liveReliabilityHeuristic(Vehicle vehicle, BrandReliabilityConfigService brandConfigService) {
+        ReliabilityCalculator calculator = brandConfigService == null
+                ? DEFAULT_RELIABILITY_CALCULATOR
+                : new ReliabilityCalculator(brandConfigService.getMergedLookup(), new PowertrainReliabilityScorer());
+        return calculator.calculate(vehicle);
     }
 }

@@ -37,6 +37,7 @@ class ScoringServiceTest {
         assertScoreInRange(metrics.getPerformanceScore());
         assertScoreInRange(metrics.getDailyDriverScore());
         assertScoreInRange(metrics.getTechnologyScore());
+        assertEquals(91.0, metrics.getReliabilityHeuristic());
         assertEquals(91.0, metrics.getReliabilityScore());
         assertEquals(98, metrics.getReliabilityConfidence());
         assertNull(metrics.getPrestigeScore());
@@ -45,13 +46,36 @@ class ScoringServiceTest {
     }
 
     @Test
-    void calculate_withOverrides_setsReliabilityAndPrestige() {
+    void calculate_withManualEstimate_blendsWithHeuristic() {
         ScoringOverrides overrides = ScoringOverrides.of(88.0, 72.0);
 
         DerivedMetrics metrics = scoringService.calculate(fullVehicle, familyFocusedProfile, overrides);
 
-        assertEquals(88.0, metrics.getReliabilityScore());
+        assertEquals(91.0, metrics.getReliabilityHeuristic());
+        assertEquals(90.0, metrics.getReliabilityScore());
         assertEquals(72.0, metrics.getPrestigeScore());
+    }
+
+    @Test
+    void calculate_withManualEstimateOnly_usesEstimate() {
+        Vehicle partialVehicle = ScoringTestFixtures.partialVehicle();
+        partialVehicle.setMake("Toyota");
+
+        DerivedMetrics metrics = scoringService.calculate(
+                partialVehicle,
+                familyFocusedProfile,
+                ScoringOverrides.of(80.0, null));
+
+        assertNull(metrics.getReliabilityHeuristic());
+        assertEquals(80.0, metrics.getReliabilityScore());
+    }
+
+    @Test
+    void calculate_withHeuristicOnly_usesHeuristic() {
+        DerivedMetrics metrics = scoringService.calculate(fullVehicle, familyFocusedProfile);
+
+        assertEquals(91.0, metrics.getReliabilityHeuristic());
+        assertEquals(91.0, metrics.getReliabilityScore());
     }
 
     @Test

@@ -52,17 +52,27 @@ import za.driver.model.Pricing;
 import za.driver.model.Safety;
 import za.driver.model.Vehicle;
 import za.driver.model.Wheels;
+import za.driver.service.BrandReliabilityConfigService;
 
 public class ScoringDataReportService {
 
-    private final ReliabilityCalculator reliabilityCalculator;
+    private final BrandReliabilityConfigService brandReliabilityConfigService;
 
     public ScoringDataReportService() {
-        this(new ReliabilityCalculator());
+        this((BrandReliabilityConfigService) null);
     }
 
-    ScoringDataReportService(ReliabilityCalculator reliabilityCalculator) {
-        this.reliabilityCalculator = reliabilityCalculator;
+    public ScoringDataReportService(BrandReliabilityConfigService brandReliabilityConfigService) {
+        this.brandReliabilityConfigService = brandReliabilityConfigService;
+    }
+
+    private ReliabilityCalculator reliabilityCalculator() {
+        if (brandReliabilityConfigService != null) {
+            return new ReliabilityCalculator(
+                    brandReliabilityConfigService.getMergedLookup(),
+                    new PowertrainReliabilityScorer());
+        }
+        return new ReliabilityCalculator();
     }
 
     private record MissingInput(String fieldPath, double weight) {
@@ -146,7 +156,7 @@ public class ScoringDataReportService {
             report.append("Reliability (score: not available)\n");
         }
 
-        ReliabilityCalculator.ReliabilityBreakdown breakdown = reliabilityCalculator.breakdown(vehicle);
+        ReliabilityCalculator.ReliabilityBreakdown breakdown = reliabilityCalculator().breakdown(vehicle);
         if (breakdown.brandScore() != null && breakdown.brandName() != null) {
             report.append(String.format(Locale.ROOT,
                     "  Brand (%s): %d × 50%% = %.1f%n",
@@ -191,8 +201,15 @@ public class ScoringDataReportService {
             report.append("  Confidence: not available\n");
         }
 
-        if (overrides != null && overrides.getReliabilityScore() != null) {
-            report.append("  Manual override active.\n");
+        if (overrides != null && overrides.getReliabilityManualEstimate() != null) {
+            report.append(String.format(Locale.ROOT,
+                    "  Manual estimate: %.0f (blended 50/50 with heuristic when both present)%n",
+                    overrides.getReliabilityManualEstimate()));
+        }
+        if (metrics != null && metrics.getReliabilityHeuristic() != null) {
+            report.append(String.format(Locale.ROOT,
+                    "  Heuristic: %.0f%n",
+                    metrics.getReliabilityHeuristic()));
         }
         report.append('\n');
     }
@@ -464,7 +481,7 @@ public class ScoringDataReportService {
     private static Double manualScore(DerivedMetrics metrics, ScoringOverrides overrides, Metric metric) {
         if (overrides != null) {
             Double overrideScore = metric == Metric.RELIABILITY
-                    ? overrides.getReliabilityScore()
+                    ? overrides.getReliabilityManualEstimate()
                     : overrides.getPrestigeScore();
             if (overrideScore != null) {
                 return overrideScore;
@@ -474,14 +491,18 @@ public class ScoringDataReportService {
     }
 
     private Double resolvedReliabilityScore(Vehicle vehicle, DerivedMetrics metrics, ScoringOverrides overrides) {
-        if (overrides != null && overrides.getReliabilityScore() != null) {
-            return overrides.getReliabilityScore();
+        if (metrics != null && metrics.getReliabilityScore() != null) {
+            return metrics.getReliabilityScore();
         }
-        Double derived = scoreFor(metrics, Metric.RELIABILITY);
-        if (derived != null) {
-            return derived;
+        Double manualEstimate = overrides != null ? overrides.getReliabilityManualEstimate() : null;
+        if (manualEstimate == null && vehicle != null && vehicle.getManualScoreOverrides() != null) {
+            manualEstimate = vehicle.getManualScoreOverrides().getReliabilityManualEstimate();
         }
-        return reliabilityCalculator.calculate(vehicle);
+        Double heuristic = metrics != null ? metrics.getReliabilityHeuristic() : null;
+        if (heuristic == null) {
+            heuristic = reliabilityCalculator().calculate(vehicle);
+        }
+        return ReliabilityScoreBlender.blend(heuristic, manualEstimate);
     }
 
     private static String formatVehicleName(Vehicle vehicle) {

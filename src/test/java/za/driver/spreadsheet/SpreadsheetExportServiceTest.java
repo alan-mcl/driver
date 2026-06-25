@@ -42,8 +42,11 @@ class SpreadsheetExportServiceTest {
     void export_placesManualScoreColumnsAfterOwnership() {
         List<String> headers = VehicleSpreadsheetSchema.headers();
         int localProduction = headers.indexOf("ownership.localProduction");
-        assertEquals("derivedMetrics.reliabilityScore", headers.get(localProduction + 1));
-        assertEquals("derivedMetrics.prestigeScore", headers.get(localProduction + 2));
-        assertEquals("source.sourceType", headers.get(localProduction + 3));
+        assertEquals("manualScoreOverrides.reliabilityManualEstimate", headers.get(localProduction + 1));
+        assertEquals("derivedMetrics.reliabilityHeuristic", headers.get(localProduction + 2));
+        assertEquals("derivedMetrics.reliabilityScore", headers.get(localProduction + 3));
+        assertEquals("manualScoreOverrides.prestigeScore", headers.get(localProduction + 4));
+        assertEquals("derivedMetrics.prestigeScore", headers.get(localProduction + 5));
+        assertEquals("source.sourceType", headers.get(localProduction + 6));
     }
 }

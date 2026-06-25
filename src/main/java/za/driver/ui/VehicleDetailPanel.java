@@ -60,10 +60,12 @@ import za.driver.scoring.ReliabilityConfidenceUtil;
 import za.driver.scoring.ScoringDataReportService;
 import za.driver.scoring.ScoringOverrides;
 import za.driver.scoring.TopWeightedMetrics;
+import za.driver.service.BrandReliabilityConfigService;
 
 public class VehicleDetailPanel extends JPanel {
 
     private final ScoringDataReportService scoringDataReportService;
+    private final BrandReliabilityConfigService brandReliabilityConfigService;
     private ScoringProfile activeProfile;
     private List<Metric> topMetrics = List.of();
 
@@ -164,6 +166,7 @@ public class VehicleDetailPanel extends JPanel {
     private final JTextField safetyScoreField = readOnlyField();
     private final JTextField runningCostScoreField = readOnlyField();
     private final JTextField reliabilityScoreField = readOnlyField();
+    private final JTextField reliabilityHeuristicField = readOnlyField();
     private final JTextField reliabilityConfidenceField = readOnlyField();
     private final JTextField comfortScoreField = readOnlyField();
     private final JTextField performanceScoreField = readOnlyField();
@@ -173,14 +176,18 @@ public class VehicleDetailPanel extends JPanel {
     private final JTextField prestigeScoreField = readOnlyField();
     private final JTextField overallScoreField = readOnlyField();
     private final JTextField scorePer100kField = readOnlyField();
-    private final JSpinner reliabilityOverrideSpinner = overrideSpinner();
+    private final JSpinner reliabilityManualEstimateSpinner = overrideSpinner();
     private final JSpinner prestigeOverrideSpinner = overrideSpinner();
     private final JTextArea notesArea = new JTextArea(8, 40);
     private final JTextArea dataReportArea = new JTextArea();
 
-    public VehicleDetailPanel(ScoringDataReportService scoringDataReportService, ScoringProfile activeProfile) {
+    public VehicleDetailPanel(
+            ScoringDataReportService scoringDataReportService,
+            BrandReliabilityConfigService brandReliabilityConfigService,
+            ScoringProfile activeProfile) {
         super(new BorderLayout());
         this.scoringDataReportService = scoringDataReportService;
+        this.brandReliabilityConfigService = brandReliabilityConfigService;
         this.activeProfile = activeProfile;
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT, JTabbedPane.WRAP_TAB_LAYOUT);
         tabs.addTab("General", wrapTopLeft(buildGeneralPanel()));
@@ -387,10 +394,10 @@ public class VehicleDetailPanel extends JPanel {
 
     private void loadOverrideSpinners(Vehicle vehicle) {
         ManualScoreOverrides overrides = vehicle != null ? vehicle.getManualScoreOverrides() : null;
-        if (overrides != null && overrides.getReliabilityScore() != null) {
-            reliabilityOverrideSpinner.setValue(overrides.getReliabilityScore().intValue());
+        if (overrides != null && overrides.getReliabilityManualEstimate() != null) {
+            reliabilityManualEstimateSpinner.setValue(overrides.getReliabilityManualEstimate().intValue());
         } else {
-            reliabilityOverrideSpinner.setValue(-1);
+            reliabilityManualEstimateSpinner.setValue(-1);
         }
         if (overrides != null && overrides.getPrestigeScore() != null) {
             prestigeOverrideSpinner.setValue(overrides.getPrestigeScore().intValue());
@@ -553,20 +560,20 @@ public class VehicleDetailPanel extends JPanel {
     }
 
     private void applyManualScoreOverrides(Vehicle vehicle) {
-        Double reliability = spinnerValue(reliabilityOverrideSpinner);
+        Double reliability = spinnerValue(reliabilityManualEstimateSpinner);
         Double prestige = spinnerValue(prestigeOverrideSpinner);
         if (reliability == null && prestige == null) {
             vehicle.setManualScoreOverrides(null);
             return;
         }
         ManualScoreOverrides overrides = new ManualScoreOverrides();
-        overrides.setReliabilityScore(reliability);
+        overrides.setReliabilityManualEstimate(reliability);
         overrides.setPrestigeScore(prestige);
         vehicle.setManualScoreOverrides(overrides);
     }
 
     public ScoringOverrides getScoringOverrides() {
-        Double reliability = spinnerValue(reliabilityOverrideSpinner);
+        Double reliability = spinnerValue(reliabilityManualEstimateSpinner);
         Double prestige = spinnerValue(prestigeOverrideSpinner);
         if (reliability == null && prestige == null) {
             return ScoringOverrides.none();
@@ -579,6 +586,11 @@ public class VehicleDetailPanel extends JPanel {
         safetyScoreField.setText(formatScore(metrics != null ? metrics.getSafetyScore() : null));
         runningCostScoreField.setText(formatScore(metrics != null ? metrics.getRunningCostScore() : null));
         reliabilityScoreField.setText(formatScore(MetricScores.displayScore(vehicle, metrics, Metric.RELIABILITY)));
+        Double heuristic = metrics != null ? metrics.getReliabilityHeuristic() : null;
+        if (heuristic == null && vehicle != null) {
+            heuristic = MetricScores.liveReliabilityHeuristic(vehicle, brandReliabilityConfigService);
+        }
+        reliabilityHeuristicField.setText(formatScore(heuristic));
         reliabilityConfidenceField.setText(ReliabilityConfidenceUtil.format(vehicle, metrics));
         comfortScoreField.setText(formatScore(metrics != null ? metrics.getComfortScore() : null));
         performanceScoreField.setText(formatScore(metrics != null ? metrics.getPerformanceScore() : null));
@@ -793,17 +805,18 @@ public class VehicleDetailPanel extends JPanel {
         addRow(panel, 0, "Safety", safetyScoreField);
         addRow(panel, 1, "Running cost", runningCostScoreField);
         addRow(panel, 2, "Reliability", reliabilityScoreField);
-        addRow(panel, 3, "Reliability confidence", reliabilityConfidenceField);
-        addRow(panel, 4, "Comfort", comfortScoreField);
-        addRow(panel, 5, "Performance", performanceScoreField);
-        addRow(panel, 6, "Daily driver", dailyDriverScoreField);
-        addRow(panel, 7, "Technology", technologyScoreField);
-        addRow(panel, 8, "Awesomeness", awesomenessScoreField);
-        addRow(panel, 9, "Prestige", prestigeScoreField);
-        addRow(panel, 10, "Overall", overallScoreField);
-        addRow(panel, 11, "Score/R100k", scorePer100kField);
-        addRow(panel, 12, "Reliability override", reliabilityOverrideSpinner);
-        addRow(panel, 13, "Prestige override", prestigeOverrideSpinner);
+        addRow(panel, 3, "Reliability (heuristic)", reliabilityHeuristicField);
+        addRow(panel, 4, "Reliability confidence", reliabilityConfidenceField);
+        addRow(panel, 5, "Comfort", comfortScoreField);
+        addRow(panel, 6, "Performance", performanceScoreField);
+        addRow(panel, 7, "Daily driver", dailyDriverScoreField);
+        addRow(panel, 8, "Technology", technologyScoreField);
+        addRow(panel, 9, "Awesomeness", awesomenessScoreField);
+        addRow(panel, 10, "Prestige", prestigeScoreField);
+        addRow(panel, 11, "Overall", overallScoreField);
+        addRow(panel, 12, "Score/R100k", scorePer100kField);
+        addRow(panel, 13, "Reliability manual estimate", reliabilityManualEstimateSpinner);
+        addRow(panel, 14, "Prestige override", prestigeOverrideSpinner);
         return panel;
     }
 
@@ -849,7 +862,7 @@ public class VehicleDetailPanel extends JPanel {
         importedDateLabel.setText("-");
         setScores(null);
         dataReportArea.setText("");
-        reliabilityOverrideSpinner.setValue(-1);
+        reliabilityManualEstimateSpinner.setValue(-1);
         prestigeOverrideSpinner.setValue(-1);
         notesArea.setText("");
     }

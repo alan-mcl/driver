@@ -91,7 +91,7 @@ class SpreadsheetImportServiceTest {
 
         SpreadsheetDataSheet sheet = new CsvSpreadsheetReader().readDataSheet(file);
         var row = sheet.rows().get(0);
-        row.put("derivedMetrics.reliabilityScore", "90");
+        row.put("manualScoreOverrides.reliabilityManualEstimate", "90");
         writeRows(file, sheet.headers(), List.of(row));
 
         SpreadsheetImportResult preview = importService.preview(file);
@@ -100,7 +100,8 @@ class SpreadsheetImportServiceTest {
         vehicleService.importSpreadsheet(preview, ScoringTestFixtures.familyFocusedProfile());
 
         Vehicle loaded = repository.findById(VEHICLE_ID).orElseThrow();
-        assertEquals(90.0, loaded.getDerivedMetrics().getReliabilityScore());
+        assertEquals(90.0, loaded.getManualScoreOverrides().getReliabilityManualEstimate());
+        assertEquals(91.0, loaded.getDerivedMetrics().getReliabilityScore());
         assertEquals(70.0, loaded.getDerivedMetrics().getPrestigeScore());
         assertEquals("Toyota", loaded.getMake());
         assertEquals(original.getEngine().getPowerKw(), loaded.getEngine().getPowerKw());
@@ -271,8 +272,8 @@ class SpreadsheetImportServiceTest {
         Map<String, String> row = blankRow();
         row.put("make", "BMW");
         row.put("model", "3 Series");
-        row.put("derivedMetrics.reliabilityScore", "75");
-        row.put("derivedMetrics.prestigeScore", "85");
+        row.put("manualScoreOverrides.reliabilityManualEstimate", "75");
+        row.put("manualScoreOverrides.prestigeScore", "85");
         writeRows(file, VehicleSpreadsheetSchema.headers(), List.of(row));
 
         SpreadsheetImportResult preview = importService.preview(file);
@@ -280,6 +281,7 @@ class SpreadsheetImportServiceTest {
         vehicleService.importSpreadsheet(preview, ScoringTestFixtures.familyFocusedProfile());
 
         Vehicle loaded = repository.findById(preview.getEntries().get(0).vehicleId()).orElseThrow();
+        assertEquals(75.0, loaded.getManualScoreOverrides().getReliabilityManualEstimate());
         assertEquals(75.0, loaded.getDerivedMetrics().getReliabilityScore());
         assertEquals(85.0, loaded.getDerivedMetrics().getPrestigeScore());
     }

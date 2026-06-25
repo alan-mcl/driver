@@ -242,7 +242,7 @@ Computed from:
 
 Confidence (`derivedMetrics.reliabilityConfidence`) is displayed separately and does not affect the score.
 
-Optional manual override via `manualScoreOverrides.reliabilityScore`.
+Optional manual estimate via `manualScoreOverrides.reliabilityManualEstimate`, blended 50/50 with the computed heuristic.
 
 ### Comfort
 

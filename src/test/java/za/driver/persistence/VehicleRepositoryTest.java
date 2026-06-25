@@ -42,7 +42,7 @@ class VehicleRepositoryTest {
     void saveAndLoad_manualScoreOverridesAndConfidence_roundTrip() throws IOException {
         Vehicle original = TestFixtures.fullVehicle();
         ManualScoreOverrides overrides = new ManualScoreOverrides();
-        overrides.setReliabilityScore(90.0);
+        overrides.setReliabilityManualEstimate(90.0);
         overrides.setPrestigeScore(50.0);
         original.setManualScoreOverrides(overrides);
         DerivedMetrics metrics = original.getDerivedMetrics();
@@ -51,9 +51,29 @@ class VehicleRepositoryTest {
         repository.save(original);
         Vehicle loaded = repository.findById(original.getId()).orElseThrow();
 
-        assertEquals(90.0, loaded.getManualScoreOverrides().getReliabilityScore());
+        assertEquals(90.0, loaded.getManualScoreOverrides().getReliabilityManualEstimate());
         assertEquals(50.0, loaded.getManualScoreOverrides().getPrestigeScore());
         assertEquals(95, loaded.getDerivedMetrics().getReliabilityConfidence());
+    }
+
+    @Test
+    void saveAndLoad_legacyReliabilityScoreAlias_roundTripsAsManualEstimate() throws IOException {
+        java.util.UUID id = java.util.UUID.randomUUID();
+        java.nio.file.Files.createDirectories(tempDir.resolve("vehicles"));
+        String json = """
+                {
+                  "id": "%s",
+                  "make": "Toyota",
+                  "model": "Corolla",
+                  "manualScoreOverrides": {
+                    "reliabilityScore": 82.0
+                  }
+                }
+                """.formatted(id);
+        java.nio.file.Files.writeString(tempDir.resolve("vehicles").resolve(id + ".json"), json);
+
+        Vehicle loaded = repository.findById(id).orElseThrow();
+        assertEquals(82.0, loaded.getManualScoreOverrides().getReliabilityManualEstimate());
     }
 
     @Test

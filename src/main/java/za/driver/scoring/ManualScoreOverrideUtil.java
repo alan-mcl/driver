@@ -16,8 +16,8 @@ public final class ManualScoreOverrideUtil {
         if (manual == null) {
             manual = new ManualScoreOverrides();
         }
-        if (overrides.getReliabilityScore() != null) {
-            manual.setReliabilityScore(overrides.getReliabilityScore());
+        if (overrides.getReliabilityManualEstimate() != null) {
+            manual.setReliabilityManualEstimate(overrides.getReliabilityManualEstimate());
         }
         if (overrides.getPrestigeScore() != null) {
             manual.setPrestigeScore(overrides.getPrestigeScore());
@@ -25,7 +25,7 @@ public final class ManualScoreOverrideUtil {
         vehicle.setManualScoreOverrides(hasAnyOverride(manual) ? manual : null);
     }
 
-    public static void setReliabilityOverride(Vehicle vehicle, Double reliabilityScore) {
+    public static void setReliabilityManualEstimate(Vehicle vehicle, Double reliabilityManualEstimate) {
         if (vehicle == null) {
             return;
         }
@@ -33,7 +33,7 @@ public final class ManualScoreOverrideUtil {
         if (manual == null) {
             manual = new ManualScoreOverrides();
         }
-        manual.setReliabilityScore(reliabilityScore);
+        manual.setReliabilityManualEstimate(reliabilityManualEstimate);
         vehicle.setManualScoreOverrides(hasAnyOverride(manual) ? manual : null);
     }
 
@@ -50,6 +50,6 @@ public final class ManualScoreOverrideUtil {
     }
 
     private static boolean hasAnyOverride(ManualScoreOverrides manual) {
-        return manual.getReliabilityScore() != null || manual.getPrestigeScore() != null;
+        return manual.getReliabilityManualEstimate() != null || manual.getPrestigeScore() != null;
     }
 }

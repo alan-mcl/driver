@@ -1,12 +1,11 @@
 package za.driver.scoring;
 
-import za.driver.model.DerivedMetrics;
 import za.driver.model.ManualScoreOverrides;
 import za.driver.model.Vehicle;
 
 public class ScoringOverrides {
 
-    private Double reliabilityScore;
+    private Double reliabilityManualEstimate;
     private Double prestigeScore;
 
     public ScoringOverrides() {
@@ -16,9 +15,9 @@ public class ScoringOverrides {
         return new ScoringOverrides();
     }
 
-    public static ScoringOverrides of(Double reliabilityScore, Double prestigeScore) {
+    public static ScoringOverrides of(Double reliabilityManualEstimate, Double prestigeScore) {
         ScoringOverrides overrides = new ScoringOverrides();
-        overrides.setReliabilityScore(reliabilityScore);
+        overrides.setReliabilityManualEstimate(reliabilityManualEstimate);
         overrides.setPrestigeScore(prestigeScore);
         return overrides;
     }
@@ -34,22 +33,8 @@ public class ScoringOverrides {
         if (overrides == null) {
             return none();
         }
-        Double reliability = overrides.getReliabilityScore();
+        Double reliability = overrides.getReliabilityManualEstimate();
         Double prestige = overrides.getPrestigeScore();
-        if (reliability == null && prestige == null) {
-            return none();
-        }
-        return of(reliability, prestige);
-    }
-
-    /** @deprecated use {@link #fromVehicle(Vehicle)} — derived metrics must not be treated as overrides */
-    @Deprecated
-    public static ScoringOverrides fromDerivedMetrics(DerivedMetrics metrics) {
-        if (metrics == null) {
-            return none();
-        }
-        Double reliability = metrics.getReliabilityScore();
-        Double prestige = metrics.getPrestigeScore();
         if (reliability == null && prestige == null) {
             return none();
         }
@@ -63,9 +48,9 @@ public class ScoringOverrides {
         if (existing == null) {
             existing = none();
         }
-        Double reliability = partial.getReliabilityScore() != null
-                ? partial.getReliabilityScore()
-                : existing.getReliabilityScore();
+        Double reliability = partial.getReliabilityManualEstimate() != null
+                ? partial.getReliabilityManualEstimate()
+                : existing.getReliabilityManualEstimate();
         Double prestige = partial.getPrestigeScore() != null
                 ? partial.getPrestigeScore()
                 : existing.getPrestigeScore();
@@ -75,12 +60,12 @@ public class ScoringOverrides {
         return of(reliability, prestige);
     }
 
-    public Double getReliabilityScore() {
-        return reliabilityScore;
+    public Double getReliabilityManualEstimate() {
+        return reliabilityManualEstimate;
     }
 
-    public void setReliabilityScore(Double reliabilityScore) {
-        this.reliabilityScore = reliabilityScore;
+    public void setReliabilityManualEstimate(Double reliabilityManualEstimate) {
+        this.reliabilityManualEstimate = reliabilityManualEstimate;
     }
 
     public Double getPrestigeScore() {

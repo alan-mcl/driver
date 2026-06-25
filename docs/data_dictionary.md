@@ -283,14 +283,16 @@ Tracks provenance of imported data.
 
 ## Manual Score Overrides
 
-Optional per-vehicle overrides for metrics that can otherwise be computed or left unset.
+Optional per-vehicle manual inputs for metrics that can otherwise be computed or left unset.
 
 | Field | Type |
 |---------|---------|
-| reliabilityScore | Double (0–100) |
+| reliabilityManualEstimate | Double (0–100) |
 | prestigeScore | Double (0–100) |
 
-Stored on `vehicle.manualScoreOverrides`. When set, replaces the computed score (Reliability) or provides the score (Prestige).
+Stored on `vehicle.manualScoreOverrides`. `reliabilityManualEstimate` is blended 50/50 with the computed heuristic when both are set. `prestigeScore` replaces the computed prestige score (Prestige is manual-only).
+
+Legacy JSON alias: `reliabilityScore` deserializes to `reliabilityManualEstimate`.
 
 ---
 
@@ -304,6 +306,7 @@ Headline metric scores are stored as 0-100. `scorePer100k` is unbounded.
 |---------|---------|
 | safetyScore | Double |
 | runningCostScore | Double |
+| reliabilityHeuristic | Double |
 | reliabilityScore | Double |
 | comfortScore | Double |
 | performanceScore | Double |
@@ -428,7 +431,11 @@ Each leaf field maps to a single spreadsheet column using dot notation (e.g. `pe
 | Maintenance plan years/km | `ownership.maintenancePlanYears`, `ownership.maintenancePlanKm` |
 | Parts support score | `ownership.partsSupportScore` |
 | Local production | `ownership.localProduction` |
-| Reliability override | `derivedMetrics.reliabilityScore` |
+| Reliability manual estimate | `manualScoreOverrides.reliabilityManualEstimate` |
+| Reliability heuristic (export only) | `derivedMetrics.reliabilityHeuristic` |
+| Reliability score (export only) | `derivedMetrics.reliabilityScore` |
+| Prestige override | `manualScoreOverrides.prestigeScore` |
+| Prestige score (export only) | `derivedMetrics.prestigeScore` |
 | Prestige override | `derivedMetrics.prestigeScore` |
 
 CSV export/import uses the same dot-path column headers. See [spreadsheet_format_spec.md](spreadsheet_format_spec.md).
