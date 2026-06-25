@@ -23,7 +23,7 @@ mvn exec:java -Dexec.mainClass="za.driver.Application"
 
 # Build runnable fat JAR
 mvn package
-java -jar target/driver-1.0-SNAPSHOT.jar
+java -jar target/driver-1.1.jar
 ```
 
 ## Data Directory
