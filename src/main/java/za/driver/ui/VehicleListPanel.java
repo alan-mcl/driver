@@ -23,6 +23,7 @@ import za.driver.model.Metric;
 import za.driver.model.Pricing;
 import za.driver.model.ScoringProfile;
 import za.driver.model.Vehicle;
+import za.driver.presentation.MetricLabels;
 import za.driver.scoring.MetricScores;
 import za.driver.scoring.ScoringInputCoverage;
 import za.driver.scoring.TopWeightedMetrics;
@@ -215,6 +216,7 @@ public class VehicleListPanel extends JPanel {
 
     private final class VehicleTableModel extends AbstractTableModel {
 
+        private ScoringProfile activeProfile;
         private List<Metric> topMetrics = List.of();
         private List<Vehicle> vehicles = new ArrayList<>();
         private final List<String> columnNames = new ArrayList<>();
@@ -224,6 +226,7 @@ public class VehicleListPanel extends JPanel {
         }
 
         void setActiveProfile(ScoringProfile profile) {
+            activeProfile = profile;
             topMetrics = TopWeightedMetrics.topN(profile, TOP_METRIC_COUNT);
             rebuildColumnNames();
             fireTableStructureChanged();
@@ -326,7 +329,7 @@ public class VehicleListPanel extends JPanel {
             columnNames.add("Price");
             columnNames.add("Overall Score");
             for (Metric metric : topMetrics) {
-                columnNames.add(WeightEditor.displayName(metric));
+                columnNames.add(MetricLabels.displayName(metric, activeProfile));
             }
             columnNames.add("Score/R100k");
             columnNames.add("Data Completeness");

@@ -25,19 +25,20 @@ public class ScoringWeightsDialog extends JDialog {
     private final JButton cancelButton = new JButton("Cancel");
 
     public ScoringWeightsDialog(JFrame owner, AppServices services, Consumer<Void> onSuccess) {
-        super(owner, "Scoring Weights", true);
+        super(owner, "Scoring Profile", true);
         this.services = services;
         this.onSuccess = onSuccess;
 
         weightEditor.loadFrom(services.activeProfile);
-        okButton.setEnabled(weightEditor.weightsSumToHundred());
+        okButton.setEnabled(weightEditor.isConfigurationValid());
         okButton.addActionListener(e -> apply());
         cancelButton.addActionListener(e -> dispose());
 
+        weightEditor.addValidationListener(() -> okButton.setEnabled(weightEditor.isConfigurationValid()));
         weightEditor.addWeightChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                okButton.setEnabled(weightEditor.weightsSumToHundred());
+                okButton.setEnabled(weightEditor.isConfigurationValid());
             }
         });
 
@@ -58,10 +59,10 @@ public class ScoringWeightsDialog extends JDialog {
     }
 
     private void apply() {
-        if (!weightEditor.weightsSumToHundred()) {
+        if (!weightEditor.isConfigurationValid()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Weights must total 100.",
+                    "Select exactly four top metrics and ensure both weight totals equal 100.",
                     "Validation",
                     JOptionPane.WARNING_MESSAGE);
             return;
@@ -70,9 +71,12 @@ public class ScoringWeightsDialog extends JDialog {
         BackgroundTasks.run(
                 this,
                 () -> {
-                    services.profileService.updateWeightsAndRecalculateAll(
+                    services.profileService.updateProfileAndRecalculateAll(
                             services.activeProfile,
-                            weightEditor.buildWeights());
+                            weightEditor.getProfileName(),
+                            weightEditor.buildWeights(),
+                            weightEditor.getAggregateName(),
+                            weightEditor.buildAggregateComponents());
                     return null;
                 },
                 ignored -> {

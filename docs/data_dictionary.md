@@ -322,12 +322,21 @@ Headline metric scores are stored as 0-100. `scorePer100k` is unbounded.
 
 ## Scoring Profile
 
-Defines metric weightings.
+Defines metric weightings for the active scoring profile.
 
-| Field | Type |
-|---------|---------|
-| id | UUID |
-| name | String |
+| Field | Type | Required |
+|---------|---------|---------|
+| id | UUID | Yes |
+| name | String | Yes |
+| weights | List of ScoringWeight | Yes |
+| aggregateName | String | No (defaults to `"Awesomeness"` on migration) |
+| aggregateComponents | List of ScoringWeight | No (defaults to legacy composition on migration) |
+
+`weights` contains exactly five entries: four chosen **top** base metrics plus one aggregate slot (`AWESOMENESS`). Profile-level weights must total 100.
+
+`aggregateComponents` contains exactly four base metrics **not** chosen as top metrics, with weights totalling 100. These define how the aggregate score is calculated.
+
+The eight **base metrics** are: `SAFETY`, `RUNNING_COST`, `RELIABILITY`, `COMFORT`, `PERFORMANCE`, `DAILY_DRIVER`, `TECHNOLOGY`, `PRESTIGE`. Each profile partitions them into four top and four aggregate components.
 
 ---
 
@@ -344,9 +353,9 @@ Weights should total 100.
 
 ## Metric
 
-Profile-weight slots (must total 100 in a `ScoringProfile`): `SAFETY`, `RUNNING_COST`, `RELIABILITY`, `PERFORMANCE`, `AWESOMENESS`.
+Base metrics (partitioned per profile into four top + four aggregate components): `SAFETY`, `RUNNING_COST`, `RELIABILITY`, `COMFORT`, `PERFORMANCE`, `DAILY_DRIVER`, `TECHNOLOGY`, `PRESTIGE`.
 
-Component metrics (calculated, not profile-weight slots): `COMFORT`, `DAILY_DRIVER`, `TECHNOLOGY`, `PRESTIGE`.
+Aggregate slot (profile-level weight + custom display name): `AWESOMENESS`.
 
 | Value |
 |---------|

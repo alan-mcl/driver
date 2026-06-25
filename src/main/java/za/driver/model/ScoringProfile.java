@@ -9,9 +9,12 @@ public class ScoringProfile {
     private UUID id;
     private String name;
     private List<ScoringWeight> weights;
+    private String aggregateName;
+    private List<ScoringWeight> aggregateComponents;
 
     public ScoringProfile() {
         this.weights = new ArrayList<>();
+        this.aggregateComponents = new ArrayList<>();
     }
 
     public UUID getId() {
@@ -36,5 +39,21 @@ public class ScoringProfile {
 
     public void setWeights(List<ScoringWeight> weights) {
         this.weights = weights;
+    }
+
+    public String getAggregateName() {
+        return aggregateName;
+    }
+
+    public void setAggregateName(String aggregateName) {
+        this.aggregateName = aggregateName;
+    }
+
+    public List<ScoringWeight> getAggregateComponents() {
+        return aggregateComponents;
+    }
+
+    public void setAggregateComponents(List<ScoringWeight> aggregateComponents) {
+        this.aggregateComponents = aggregateComponents;
     }
 }

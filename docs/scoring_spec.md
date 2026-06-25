@@ -21,19 +21,19 @@ Detailed reference for how Driver calculates vehicle scores. This document mirro
 
 ## Overview
 
-Driver produces **nine headline metrics**, each on a **0–100** scale, plus a weighted **overall score**. Profile weighting uses **five** metrics; the remaining four component metrics feed **Awesomeness**:
+Driver produces **nine headline metrics**, each on a **0–100** scale, plus a weighted **overall score**. Each scoring profile selects **four top base metrics** and combines the remaining four into a **configurable aggregate metric** (default name: Awesomeness):
 
-| Metric | Code enum | Calculator | Profile weight slot |
+| Metric | Code enum | Calculator | Typical profile role |
 |--------|-----------|------------|---------------------|
-| Safety | `SAFETY` | `SafetyCalculator` | Yes |
-| Running Cost | `RUNNING_COST` | `RunningCostCalculator` | Yes |
-| Reliability | `RELIABILITY` | Heuristic + optional manual estimate (50/50 blend) | Yes |
-| Comfort | `COMFORT` | `ComfortCalculator` | No (Awesomeness component) |
-| Performance | `PERFORMANCE` | `PerformanceCalculator` | Yes |
-| Daily Driver | `DAILY_DRIVER` | `DailyDriverCalculator` | No (Awesomeness component) |
-| Technology | `TECHNOLOGY` | `TechnologyCalculator` | No (Awesomeness component) |
-| Prestige | `PRESTIGE` | Manual override only | No (Awesomeness component) |
-| Awesomeness | `AWESOMENESS` | `AwesomenessCalculator` (derived) | Yes |
+| Safety | `SAFETY` | `SafetyCalculator` | Top (Family default) |
+| Running Cost | `RUNNING_COST` | `RunningCostCalculator` | Top (Family default) |
+| Reliability | `RELIABILITY` | Heuristic + optional manual estimate (50/50 blend) | Top (Family default) |
+| Comfort | `COMFORT` | `ComfortCalculator` | Aggregate component (Family default) |
+| Performance | `PERFORMANCE` | `PerformanceCalculator` | Top (Family default) |
+| Daily Driver | `DAILY_DRIVER` | `DailyDriverCalculator` | Aggregate component (Family default) |
+| Technology | `TECHNOLOGY` | `TechnologyCalculator` | Aggregate component (Family default) |
+| Prestige | `PRESTIGE` | Manual override only | Aggregate component (Family default) |
+| Aggregate (`awesomenessScore`) | `AWESOMENESS` | `AwesomenessCalculator` (derived) | Aggregate slot (Family default) |
 
 All computed outputs pass through `clamp(x) = min(100, max(0, x))`.
 
@@ -375,15 +375,31 @@ CSV column `manualScoreOverrides.reliabilityManualEstimate` round-trips on impor
 
 **Calculator:** `PrestigeCalculator` always returns `null`.
 
-Set via `ScoringOverrides.prestigeScore` (UI: **Prestige override** spinner). Contributes to **Awesomeness** at 55% when set; does not participate in overall score directly.
+Set via `ScoringOverrides.prestigeScore` (UI: **Prestige override** spinner). Contributes to the profile aggregate metric when included in that profile's aggregate composition; does not participate in overall score directly.
 
 ---
 
-## Awesomeness (derived)
+## Aggregate metric (derived, stored as `awesomenessScore`)
 
-**Calculator:** `AwesomenessCalculator` — weighted average of four component metrics.
+**Calculator:** `AwesomenessCalculator` — weighted average of four component base metrics defined on the active `ScoringProfile`.
 
-Fixed composition weights (not user-configurable):
+Each profile partitions the eight base metrics into:
+
+- **Four top metrics** — weighted directly in the overall score via `ScoringProfile.weights`
+- **Four aggregate components** — combined into one derived score (`derivedMetrics.awesomenessScore`) via `ScoringProfile.aggregateComponents`
+- **One aggregate slot** (`Metric.AWESOMENESS`) — carries the aggregate's profile-level weight and a user-defined display name (`ScoringProfile.aggregateName`)
+
+```text
+awesomenessScore = weightedAverage(componentScores from aggregateComponents)
+```
+
+Uses the same renormalization rules as other weighted averages: missing component scores are excluded; if all four are null, `awesomenessScore = null`.
+
+The aggregate score is **not** manually editable. Manual Prestige overrides affect the aggregate when Prestige is an aggregate component.
+
+When `aggregateComponents` is absent (legacy JSON), the calculator falls back to the default composition below.
+
+### Default aggregate composition (Family Focused)
 
 | Component | Weight |
 |-----------|--------|
@@ -392,13 +408,7 @@ Fixed composition weights (not user-configurable):
 | Daily Driver | 15% |
 | Technology | 15% |
 
-```text
-awesomenessScore = weightedAverage(prestigeScore, comfortScore, dailyDriverScore, technologyScore)
-```
-
-Uses the same renormalization rules as other weighted averages: missing component scores are excluded; if all four are null, `awesomenessScore = null`.
-
-Awesomeness is **not** manually editable. The Prestige override affects Awesomeness via the 55% Prestige component.
+Legacy constant names (`AWESOMENESS_*_WEIGHT` in `ScoringConstants`) match these defaults and are used only as fallback.
 
 ---
 
@@ -413,10 +423,10 @@ overallScore = Σ(metricScore × profileWeight) / Σ(profileWeight)
 
 Rules:
 
-- Profile weights apply only to **profile-weight metrics** (Safety, Running Cost, Reliability, Performance, Awesomeness) with a **non-null** score.
+- Profile weights apply to the **five profile-level slots** (four chosen top base metrics plus the aggregate slot) with a **non-null** score.
 - Weights **renormalize** over participating metrics — same pattern as sub-metric averages.
 - If the profile is null, has no weights, or no metric scores exist → `overallScore = null`.
-- Component metrics (Comfort, Daily Driver, Technology, Prestige) do not participate in overall score directly; they feed Awesomeness only.
+- Base metrics not chosen as top metrics do not participate in overall score directly; they feed the aggregate metric only.
 
 ### Default profile: Family Focused
 
@@ -428,10 +438,12 @@ Seeded by `DefaultProfileSeeder` (UUID `6ba7b810-9dad-11d1-80b4-00c04fd430c8`):
 | Running Cost | 15 |
 | Reliability | 15 |
 | Performance | 5 |
-| Awesomeness | 40 |
+| Awesomeness (aggregate name) | 40 |
 | **Total** | **100** |
 
-Legacy profiles with separate Comfort, Daily Driver, Technology, and Prestige weights are migrated automatically (their weights are summed into Awesomeness).
+Aggregate components (Comfort, Daily Driver, Technology, Prestige): 15%, 15%, 15%, 55% respectively.
+
+The active profile is fully configurable via **Config → Scoring Profile…** (profile name, top-metric selection, aggregate name/weight, and aggregate composition). Legacy profiles with separate Comfort, Daily Driver, Technology, and Prestige profile weights are migrated automatically (their weights are summed into the aggregate slot). Profiles missing `aggregateName` or `aggregateComponents` are backfilled with `"Awesomeness"` and the default composition on load.
 
 Additional profiles are stored as JSON in `data/profiles/{uuid}.json`.
 
@@ -584,7 +596,7 @@ If a profile assigns weight to Safety and Reliability but only Safety can be com
 | Scale ranges (min/max) | `ScoringConstants` — `FUEL_MIN`, `POWER_MAX`, etc. |
 | Sub-metric weights inside a headline metric | `ScoringConstants` — `SAFETY_NCAP_WEIGHT`, `TECH_ADAPTIVE_CRUISE_WEIGHT`, etc. |
 | Which fields feed a metric | Individual `*Calculator.java` |
-| Profile-level metric weights | `ScoringProfile` JSON in `data/profiles/` (profile editor UI planned Phase 7) |
+| Profile-level metric weights | `ScoringProfile` JSON in `data/profiles/` (**Config → Scoring Profile…**) |
 | Manual Reliability / Prestige per vehicle | Vehicle detail overrides → `ScoringOverrides` |
 
 **Notes:**

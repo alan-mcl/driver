@@ -159,6 +159,14 @@ public final class ScoringTestFixtures {
         weights.add(weight(Metric.AWESOMENESS, 40.0));
         profile.setWeights(weights);
 
+        List<ScoringWeight> aggregateComponents = new ArrayList<>();
+        aggregateComponents.add(weight(Metric.PRESTIGE, 55.0));
+        aggregateComponents.add(weight(Metric.COMFORT, 15.0));
+        aggregateComponents.add(weight(Metric.DAILY_DRIVER, 15.0));
+        aggregateComponents.add(weight(Metric.TECHNOLOGY, 15.0));
+        profile.setAggregateName("Awesomeness");
+        profile.setAggregateComponents(aggregateComponents);
+
         return profile;
     }
 

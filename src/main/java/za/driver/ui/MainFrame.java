@@ -157,7 +157,7 @@ public class MainFrame extends JFrame {
         JMenu configMenu = new JMenu("Config");
         configMenu.setMnemonic(KeyEvent.VK_C);
 
-        JMenuItem scoringWeightsItem = new JMenuItem("Scoring Weights…");
+        JMenuItem scoringWeightsItem = new JMenuItem("Scoring Profile…");
         scoringWeightsItem.setMnemonic(KeyEvent.VK_W);
         scoringWeightsItem.addActionListener(e -> openScoringWeightsDialog());
         configMenu.add(scoringWeightsItem);

@@ -55,6 +55,7 @@ import za.driver.model.Vehicle;
 import za.driver.model.VehicleStatus;
 import za.driver.model.Wheels;
 import za.driver.persistence.JsonStore;
+import za.driver.presentation.MetricLabels;
 import za.driver.scoring.MetricScores;
 import za.driver.scoring.ReliabilityConfidenceUtil;
 import za.driver.scoring.ScoringDataReportService;
@@ -173,6 +174,7 @@ public class VehicleDetailPanel extends JPanel {
     private final JTextField dailyDriverScoreField = readOnlyField();
     private final JTextField technologyScoreField = readOnlyField();
     private final JTextField awesomenessScoreField = readOnlyField();
+    private final JLabel awesomenessScoreLabel = new JLabel("Awesomeness");
     private final JTextField prestigeScoreField = readOnlyField();
     private final JTextField overallScoreField = readOnlyField();
     private final JTextField scorePer100kField = readOnlyField();
@@ -212,9 +214,10 @@ public class VehicleDetailPanel extends JPanel {
     public void setActiveProfile(ScoringProfile profile) {
         this.activeProfile = profile;
         this.topMetrics = TopWeightedMetrics.topN(profile, 5);
+        awesomenessScoreLabel.setText(MetricLabels.displayName(Metric.AWESOMENESS, profile));
         for (int i = 0; i < metricStarPanels.size(); i++) {
             if (i < topMetrics.size()) {
-                metricStarPanels.get(i).setLabel(WeightEditor.displayName(topMetrics.get(i)));
+                metricStarPanels.get(i).setLabel(MetricLabels.displayName(topMetrics.get(i), profile));
             } else {
                 metricStarPanels.get(i).setLabel("");
                 metricStarPanels.get(i).setScore(null);
@@ -811,7 +814,7 @@ public class VehicleDetailPanel extends JPanel {
         addRow(panel, 6, "Performance", performanceScoreField);
         addRow(panel, 7, "Daily driver", dailyDriverScoreField);
         addRow(panel, 8, "Technology", technologyScoreField);
-        addRow(panel, 9, "Awesomeness", awesomenessScoreField);
+        addRow(panel, 9, awesomenessScoreLabel, awesomenessScoreField);
         addRow(panel, 10, "Prestige", prestigeScoreField);
         addRow(panel, 11, "Overall", overallScoreField);
         addRow(panel, 12, "Score/R100k", scorePer100kField);
@@ -1072,12 +1075,16 @@ public class VehicleDetailPanel extends JPanel {
     }
 
     private static void addRow(JPanel panel, int row, String label, java.awt.Component field) {
+        addRow(panel, row, new JLabel(label), field);
+    }
+
+    private static void addRow(JPanel panel, int row, JLabel label, java.awt.Component field) {
         GridBagConstraints labelConstraints = new GridBagConstraints();
         labelConstraints.gridx = 0;
         labelConstraints.gridy = row;
         labelConstraints.anchor = GridBagConstraints.NORTHWEST;
         labelConstraints.insets = new Insets(4, 8, 4, 8);
-        panel.add(new JLabel(label), labelConstraints);
+        panel.add(label, labelConstraints);
 
         GridBagConstraints fieldConstraints = new GridBagConstraints();
         fieldConstraints.gridx = 1;

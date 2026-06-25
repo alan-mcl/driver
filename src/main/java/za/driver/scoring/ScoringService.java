@@ -96,7 +96,8 @@ public class ScoringService {
         metrics.setTechnologyScore(scores.get(Metric.TECHNOLOGY));
         metrics.setPrestigeScore(scores.get(Metric.PRESTIGE));
 
-        Double awesomenessScore = AwesomenessCalculator.calculate(scores);
+        List<ScoringWeight> aggregateComponents = profile != null ? profile.getAggregateComponents() : null;
+        Double awesomenessScore = AwesomenessCalculator.calculate(scores, aggregateComponents);
         if (awesomenessScore != null) {
             awesomenessScore = ScoreUtil.clamp(awesomenessScore);
             scores.put(Metric.AWESOMENESS, awesomenessScore);

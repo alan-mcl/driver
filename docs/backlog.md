@@ -16,7 +16,7 @@ Some items below are still described in `design_spec.md` but were deliberately d
 
 ## Scoring profiles
 
-The active profile's weights can be edited via **Config → Scoring Weights…**. Multi-profile management was not built.
+The active profile is fully configurable via **Config → Scoring Profile…** (name, top-metric selection, aggregate name/weight, and aggregate composition). Multi-profile management was not built.
 
 - Profile list/create/edit/delete UI (`ProfilePanel`)
 - Active profile selector in the main toolbar

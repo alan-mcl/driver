@@ -1,6 +1,7 @@
 package za.driver.presentation;
 
 import za.driver.model.Metric;
+import za.driver.model.ScoringProfile;
 
 public final class MetricLabels {
 
@@ -19,5 +20,15 @@ public final class MetricLabels {
             case PRESTIGE -> "Prestige";
             case AWESOMENESS -> "Awesomeness";
         };
+    }
+
+    public static String displayName(Metric metric, ScoringProfile profile) {
+        if (metric == Metric.AWESOMENESS && profile != null) {
+            String aggregateName = profile.getAggregateName();
+            if (aggregateName != null && !aggregateName.isBlank()) {
+                return aggregateName;
+            }
+        }
+        return displayName(metric);
     }
 }

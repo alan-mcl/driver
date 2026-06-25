@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -166,6 +169,40 @@ class ScoringServiceTest {
 
         assertNull(metrics.getOverallScore());
         assertNull(metrics.getScorePer100k());
+    }
+
+    @Test
+    void calculate_awesomeness_usesProfileAggregateComponents() {
+        ScoringProfile customProfile = ScoringTestFixtures.familyFocusedProfile();
+        List<ScoringWeight> components = new ArrayList<>();
+        components.add(weight(Metric.PRESTIGE, 25.0));
+        components.add(weight(Metric.COMFORT, 25.0));
+        components.add(weight(Metric.DAILY_DRIVER, 25.0));
+        components.add(weight(Metric.TECHNOLOGY, 25.0));
+        customProfile.setAggregateComponents(components);
+
+        ScoringOverrides overrides = ScoringOverrides.of(null, 80.0);
+        DerivedMetrics metrics = scoringService.calculate(fullVehicle, customProfile, overrides);
+
+        double expected = (
+                80.0 * 25.0
+                + metrics.getComfortScore() * 25.0
+                + metrics.getDailyDriverScore() * 25.0
+                + metrics.getTechnologyScore() * 25.0
+        ) / 100.0;
+        assertEquals(expected, metrics.getAwesomenessScore(), 0.01);
+    }
+
+    @Test
+    void calculate_awesomeness_fallsBackToLegacyConstantsWithoutComponents() {
+        ScoringProfile profileWithoutComponents = ScoringTestFixtures.familyFocusedProfile();
+        profileWithoutComponents.setAggregateComponents(null);
+
+        ScoringOverrides overrides = ScoringOverrides.of(null, 80.0);
+        DerivedMetrics metrics = scoringService.calculate(fullVehicle, profileWithoutComponents, overrides);
+
+        DerivedMetrics withDefaults = scoringService.calculate(fullVehicle, familyFocusedProfile, overrides);
+        assertEquals(withDefaults.getAwesomenessScore(), metrics.getAwesomenessScore());
     }
 
     @Test

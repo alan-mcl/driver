@@ -1,5 +1,10 @@
 package za.driver.service;
 
+import static za.driver.scoring.ScoringConstants.AWESOMENESS_COMFORT_WEIGHT;
+import static za.driver.scoring.ScoringConstants.AWESOMENESS_DAILY_DRIVER_WEIGHT;
+import static za.driver.scoring.ScoringConstants.AWESOMENESS_PRESTIGE_WEIGHT;
+import static za.driver.scoring.ScoringConstants.AWESOMENESS_TECHNOLOGY_WEIGHT;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -36,25 +41,47 @@ public class ScoringProfileService {
         this.scoringService = scoringService;
     }
 
+    public void validateProfile(
+            String name,
+            List<ScoringWeight> weights,
+            String aggregateName,
+            List<ScoringWeight> aggregateComponents) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Profile name is required");
+        }
+        if (aggregateName == null || aggregateName.isBlank()) {
+            throw new IllegalArgumentException("Aggregate metric name is required");
+        }
+        validateWeights(weights);
+        validateAggregateComponents(weights, aggregateComponents);
+    }
+
     public void validateWeights(List<ScoringWeight> weights) {
-        if (weights == null || weights.size() != Metric.PROFILE_WEIGHT_METRICS.size()) {
-            throw new IllegalArgumentException("Weights must include all five profile metrics");
+        if (weights == null || weights.size() != 5) {
+            throw new IllegalArgumentException("Weights must include exactly five profile-level metrics");
         }
 
         Set<Metric> seen = EnumSet.noneOf(Metric.class);
         double total = 0.0;
+        boolean hasAggregate = false;
+        int topCount = 0;
 
         for (ScoringWeight scoringWeight : weights) {
             if (scoringWeight.getMetric() == null) {
                 throw new IllegalArgumentException("Each weight must specify a metric");
             }
-            if (!Metric.PROFILE_WEIGHT_METRICS.contains(scoringWeight.getMetric())) {
-                throw new IllegalArgumentException("Invalid profile metric: " + scoringWeight.getMetric());
+            Metric metric = scoringWeight.getMetric();
+            if (metric == Metric.AWESOMENESS) {
+                hasAggregate = true;
+            } else if (!Metric.BASE_METRICS.contains(metric)) {
+                throw new IllegalArgumentException("Invalid profile metric: " + metric);
+            } else {
+                topCount++;
             }
-            if (seen.contains(scoringWeight.getMetric())) {
-                throw new IllegalArgumentException("Duplicate metric: " + scoringWeight.getMetric());
+            if (seen.contains(metric)) {
+                throw new IllegalArgumentException("Duplicate metric: " + metric);
             }
-            seen.add(scoringWeight.getMetric());
+            seen.add(metric);
 
             Double weight = scoringWeight.getWeight();
             if (weight == null || weight < 0.0) {
@@ -63,8 +90,53 @@ public class ScoringProfileService {
             total += weight;
         }
 
+        if (!hasAggregate || topCount != 4) {
+            throw new IllegalArgumentException(
+                    "Weights must include exactly one aggregate metric and four top metrics");
+        }
+
         if (total != 100.0) {
             throw new IllegalArgumentException("Weights must total 100 (current total: " + total + ")");
+        }
+    }
+
+    public void validateAggregateComponents(List<ScoringWeight> weights, List<ScoringWeight> aggregateComponents) {
+        if (aggregateComponents == null || aggregateComponents.size() != 4) {
+            throw new IllegalArgumentException("Aggregate composition must include exactly four component metrics");
+        }
+
+        Set<Metric> expectedComponents = complementTopMetrics(extractTopMetrics(weights));
+        Set<Metric> seen = EnumSet.noneOf(Metric.class);
+        double total = 0.0;
+
+        for (ScoringWeight scoringWeight : aggregateComponents) {
+            if (scoringWeight.getMetric() == null) {
+                throw new IllegalArgumentException("Each aggregate component must specify a metric");
+            }
+            Metric metric = scoringWeight.getMetric();
+            if (!Metric.BASE_METRICS.contains(metric)) {
+                throw new IllegalArgumentException("Invalid aggregate component metric: " + metric);
+            }
+            if (seen.contains(metric)) {
+                throw new IllegalArgumentException("Duplicate aggregate component metric: " + metric);
+            }
+            seen.add(metric);
+
+            Double weight = scoringWeight.getWeight();
+            if (weight == null || weight < 0.0) {
+                throw new IllegalArgumentException("Each aggregate component weight must be a non-negative number");
+            }
+            total += weight;
+        }
+
+        if (!seen.equals(expectedComponents)) {
+            throw new IllegalArgumentException(
+                    "Aggregate components must be the four base metrics not chosen as top metrics");
+        }
+
+        if (total != 100.0) {
+            throw new IllegalArgumentException(
+                    "Aggregate component weights must total 100 (current total: " + total + ")");
         }
     }
 
@@ -91,7 +163,7 @@ public class ScoringProfileService {
                 awesomenessWeight += scoringWeight.getWeight();
             } else if (metric == Metric.AWESOMENESS) {
                 awesomenessWeight += scoringWeight.getWeight();
-            } else if (Metric.PROFILE_WEIGHT_METRICS.contains(metric)) {
+            } else if (Metric.BASE_METRICS.contains(metric) || Metric.PROFILE_WEIGHT_METRICS.contains(metric)) {
                 migrated.add(copyWeight(scoringWeight));
             }
         }
@@ -110,6 +182,41 @@ public class ScoringProfileService {
         profileRepository.save(profile);
     }
 
+    public void updateProfileAndRecalculateAll(
+            ScoringProfile profile,
+            String name,
+            List<ScoringWeight> weights,
+            String aggregateName,
+            List<ScoringWeight> aggregateComponents) throws IOException {
+        List<ScoringWeight> normalizedWeights = migrateLegacyWeights(weights);
+        List<ScoringWeight> normalizedComponents = copyWeights(aggregateComponents);
+        validateProfile(name, normalizedWeights, aggregateName, normalizedComponents);
+
+        profile.setName(name.trim());
+        profile.setWeights(normalizedWeights);
+        profile.setAggregateName(aggregateName.trim());
+        profile.setAggregateComponents(normalizedComponents);
+        profileRepository.save(profile);
+        recalculateAllVehicles(profile);
+    }
+
+    public void updateWeightsAndRecalculateAll(ScoringProfile profile, List<ScoringWeight> weights)
+            throws IOException {
+        String aggregateName = profile.getAggregateName() != null && !profile.getAggregateName().isBlank()
+                ? profile.getAggregateName()
+                : "Awesomeness";
+        List<ScoringWeight> aggregateComponents = profile.getAggregateComponents();
+        if (aggregateComponents == null || aggregateComponents.isEmpty()) {
+            aggregateComponents = buildDefaultAggregateComponents(extractTopMetrics(migrateLegacyWeights(weights)));
+        }
+        updateProfileAndRecalculateAll(
+                profile,
+                profile.getName(),
+                weights,
+                aggregateName,
+                aggregateComponents);
+    }
+
     public void recalculateAllVehicles(ScoringProfile profile) throws IOException {
         for (Vehicle vehicle : vehicleRepository.findAll()) {
             ScoringOverrides overrides = ScoringOverrides.fromVehicle(vehicle);
@@ -118,20 +225,67 @@ public class ScoringProfileService {
         }
     }
 
-    public void updateWeightsAndRecalculateAll(ScoringProfile profile, List<ScoringWeight> weights)
-            throws IOException {
-        updateWeights(profile, weights);
-        recalculateAllVehicles(profile);
+    public ScoringProfile ensureMigratedProfile(ScoringProfile profile) throws IOException {
+        boolean changed = false;
+
+        List<ScoringWeight> migratedWeights = migrateLegacyWeights(profile.getWeights());
+        if (migratedWeights != profile.getWeights()) {
+            profile.setWeights(migratedWeights);
+            changed = true;
+        }
+
+        if (profile.getAggregateName() == null || profile.getAggregateName().isBlank()) {
+            profile.setAggregateName("Awesomeness");
+            changed = true;
+        }
+
+        if (profile.getAggregateComponents() == null || profile.getAggregateComponents().isEmpty()) {
+            profile.setAggregateComponents(buildDefaultAggregateComponents(extractTopMetrics(profile.getWeights())));
+            changed = true;
+        }
+
+        if (changed) {
+            profileRepository.save(profile);
+        }
+        return profile;
     }
 
-    public ScoringProfile ensureMigratedProfile(ScoringProfile profile) throws IOException {
-        List<ScoringWeight> migrated = migrateLegacyWeights(profile.getWeights());
-        if (migrated == profile.getWeights()) {
-            return profile;
+    static Set<Metric> extractTopMetrics(List<ScoringWeight> weights) {
+        Set<Metric> topMetrics = EnumSet.noneOf(Metric.class);
+        if (weights == null) {
+            return topMetrics;
         }
-        profile.setWeights(migrated);
-        profileRepository.save(profile);
-        return profile;
+        for (ScoringWeight scoringWeight : weights) {
+            Metric metric = scoringWeight.getMetric();
+            if (metric != null && metric != Metric.AWESOMENESS) {
+                topMetrics.add(metric);
+            }
+        }
+        return topMetrics;
+    }
+
+    public static Set<Metric> complementTopMetrics(Set<Metric> topMetrics) {
+        EnumSet<Metric> complement = EnumSet.copyOf(Metric.BASE_METRICS);
+        complement.removeAll(topMetrics);
+        return complement;
+    }
+
+    static List<ScoringWeight> buildDefaultAggregateComponents(Set<Metric> topMetrics) {
+        List<ScoringWeight> components = new ArrayList<>();
+        for (Metric metric : complementTopMetrics(topMetrics)) {
+            components.add(weight(metric, defaultComponentWeight(metric)));
+        }
+        return components;
+    }
+
+    private static double defaultComponentWeight(Metric metric) {
+        return switch (metric) {
+            case PRESTIGE -> AWESOMENESS_PRESTIGE_WEIGHT;
+            case COMFORT -> AWESOMENESS_COMFORT_WEIGHT;
+            case DAILY_DRIVER -> AWESOMENESS_DAILY_DRIVER_WEIGHT;
+            case TECHNOLOGY -> AWESOMENESS_TECHNOLOGY_WEIGHT;
+            default -> throw new IllegalArgumentException("Not an aggregate component metric: " + metric);
+        };
     }
 
     private static ScoringWeight copyWeight(ScoringWeight source) {
@@ -139,5 +293,23 @@ public class ScoringProfileService {
         copy.setMetric(source.getMetric());
         copy.setWeight(source.getWeight());
         return copy;
+    }
+
+    private static List<ScoringWeight> copyWeights(List<ScoringWeight> source) {
+        List<ScoringWeight> copies = new ArrayList<>();
+        if (source == null) {
+            return copies;
+        }
+        for (ScoringWeight scoringWeight : source) {
+            copies.add(copyWeight(scoringWeight));
+        }
+        return copies;
+    }
+
+    private static ScoringWeight weight(Metric metric, double value) {
+        ScoringWeight scoringWeight = new ScoringWeight();
+        scoringWeight.setMetric(metric);
+        scoringWeight.setWeight(value);
+        return scoringWeight;
     }
 }

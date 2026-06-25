@@ -67,7 +67,7 @@ class ScoringProfileServiceTest {
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class,
                 () -> profileService.validateWeights(weights));
-        assertTrue(error.getMessage().contains("five profile metrics"));
+        assertTrue(error.getMessage().contains("five profile-level metrics"));
     }
 
     @Test
@@ -151,6 +151,70 @@ class ScoringProfileServiceTest {
 
         Vehicle reloaded = vehicleRepository.findById(vehicle.getId()).orElseThrow();
         assertEquals(90.0, reloaded.getDerivedMetrics().getReliabilityScore());
+    }
+
+    @Test
+    void validateAggregateComponents_rejectsPartitionMismatch() {
+        List<ScoringWeight> weights = copyWeights(profile.getWeights());
+        List<ScoringWeight> components = copyWeights(profile.getAggregateComponents());
+        components.get(0).setMetric(Metric.SAFETY);
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> profileService.validateAggregateComponents(weights, components));
+        assertTrue(error.getMessage().contains("not chosen as top metrics"));
+    }
+
+    @Test
+    void ensureMigratedProfile_backfillsAggregateFields() throws IOException {
+        ScoringProfile legacy = new ScoringProfile();
+        legacy.setId(UUID.randomUUID());
+        legacy.setName("Legacy");
+        legacy.setWeights(copyWeights(profile.getWeights()));
+
+        ScoringProfile migrated = profileService.ensureMigratedProfile(legacy);
+
+        assertEquals("Awesomeness", migrated.getAggregateName());
+        assertEquals(4, migrated.getAggregateComponents().size());
+        assertEquals(55.0, weightFor(migrated.getAggregateComponents(), Metric.PRESTIGE));
+    }
+
+    @Test
+    void updateProfileAndRecalculateAll_persistsAggregateNameAndComponents() throws IOException {
+        profileRepository.save(profile);
+
+        Vehicle full = ScoringTestFixtures.fullVehicle();
+        ScoringService scoringService = new ScoringService();
+        full.setDerivedMetrics(scoringService.calculate(full, profile));
+        vehicleRepository.save(full);
+
+        List<ScoringWeight> weights = copyWeights(profile.getWeights());
+        List<ScoringWeight> components = copyWeights(profile.getAggregateComponents());
+        components.stream()
+                .filter(w -> w.getMetric() == Metric.COMFORT)
+                .findFirst()
+                .orElseThrow()
+                .setWeight(30.0);
+        components.stream()
+                .filter(w -> w.getMetric() == Metric.PRESTIGE)
+                .findFirst()
+                .orElseThrow()
+                .setWeight(40.0);
+
+        profileService.updateProfileAndRecalculateAll(
+                profile,
+                "Renamed Profile",
+                weights,
+                "Cool Factor",
+                components);
+
+        ScoringProfile loaded = profileRepository.findById(profile.getId()).orElseThrow();
+        assertEquals("Renamed Profile", loaded.getName());
+        assertEquals("Cool Factor", loaded.getAggregateName());
+        assertEquals(30.0, weightFor(loaded.getAggregateComponents(), Metric.COMFORT));
+
+        Vehicle reloaded = vehicleRepository.findById(full.getId()).orElseThrow();
+        assertNotNull(reloaded.getDerivedMetrics().getAwesomenessScore());
     }
 
     @Test
