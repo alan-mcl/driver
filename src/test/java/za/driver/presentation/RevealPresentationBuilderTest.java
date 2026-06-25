@@ -48,6 +48,7 @@ class RevealPresentationBuilderTest {
         assertTrue(html.contains("trim-rating-block"));
         assertTrue(html.contains("Ratings"));
         assertTrue(html.contains("class=\"overall-rating\""));
+        assertFalse(html.contains("/5"));
         assertTrue(html.contains("Overall"));
         assertTrue(html.contains("Safety"));
         assertTrue(html.contains("class=\"star filled\""));

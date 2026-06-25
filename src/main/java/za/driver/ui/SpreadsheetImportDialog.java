@@ -1,9 +1,11 @@
 package za.driver.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -11,12 +13,15 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import za.driver.model.VehicleIdentity;
 import za.driver.service.AppServices;
+import za.driver.spreadsheet.SpreadsheetImportProgress;
 import za.driver.spreadsheet.SpreadsheetImportResult;
 
 public class SpreadsheetImportDialog extends JDialog {
@@ -26,6 +31,7 @@ public class SpreadsheetImportDialog extends JDialog {
 
     private final JLabel fileLabel = new JLabel("No file selected");
     private final JLabel statusLabel = new JLabel(" ");
+    private final JProgressBar progressBar = new JProgressBar(0, 100);
     private final JTextArea detailArea = new JTextArea(12, 60);
     private final JButton previewButton = new JButton("Preview");
     private final JButton importButton = new JButton("Import");
@@ -43,6 +49,8 @@ public class SpreadsheetImportDialog extends JDialog {
         detailArea.setEditable(false);
         detailArea.setLineWrap(true);
         detailArea.setWrapStyleWord(true);
+        progressBar.setVisible(false);
+        progressBar.setStringPainted(true);
         previewButton.setEnabled(false);
         importButton.setEnabled(false);
 
@@ -57,6 +65,7 @@ public class SpreadsheetImportDialog extends JDialog {
 
         JPanel centerPanel = new JPanel(new BorderLayout(0, 4));
         centerPanel.add(new JScrollPane(detailArea), BorderLayout.CENTER);
+        centerPanel.add(progressBar, BorderLayout.NORTH);
         centerPanel.add(statusLabel, BorderLayout.SOUTH);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -92,27 +101,89 @@ public class SpreadsheetImportDialog extends JDialog {
         if (selectedFile == null) {
             return;
         }
-        BackgroundTasks.run(
-                this,
-                () -> services.spreadsheetImportService.preview(selectedFile),
-                result -> {
-                    currentResult = result;
-                    if (!result.isValid()) {
-                        importButton.setEnabled(false);
-                        statusLabel.setText(String.join(" ", result.getErrors()));
-                        detailArea.setText(buildDetail(result));
-                        return;
-                    }
-                    statusLabel.setText(buildStatusSummary(result));
-                    detailArea.setText(buildDetail(result));
-                    importButton.setEnabled(true);
-                },
-                error -> {
+        setBusy(true, "Previewing…", true);
+        new SwingWorker<SpreadsheetImportResult, int[]>() {
+            @Override
+            protected SpreadsheetImportResult doInBackground() throws Exception {
+                SpreadsheetImportProgress progress = (current, total) -> publish(new int[] {current, total});
+                return services.spreadsheetImportService.preview(selectedFile, progress);
+            }
+
+            @Override
+            protected void process(List<int[]> chunks) {
+                int[] latest = chunks.get(chunks.size() - 1);
+                updateProgress(latest[0], latest[1]);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    SpreadsheetImportResult result = get();
+                    applyPreviewResult(result);
+                } catch (Exception ex) {
                     currentResult = null;
                     importButton.setEnabled(false);
-                    statusLabel.setText("Preview failed: " + error.getMessage());
-                    BackgroundTasks.showError(this, "Import Preview", error);
-                });
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    String message = cause.getMessage() != null ? cause.getMessage() : cause.toString();
+                    statusLabel.setText("Preview failed: " + message);
+                    BackgroundTasks.showError(
+                            SpreadsheetImportDialog.this,
+                            "Import Preview",
+                            cause instanceof Exception exception ? exception : new RuntimeException(cause));
+                } finally {
+                    setBusy(false, " ", false);
+                }
+            }
+        }.execute();
+    }
+
+    private void applyPreviewResult(SpreadsheetImportResult result) {
+        currentResult = result;
+        if (!result.isValid()) {
+            importButton.setEnabled(false);
+            statusLabel.setText(String.join(" ", result.getErrors()));
+            detailArea.setText(buildDetail(result));
+            return;
+        }
+        statusLabel.setText(buildStatusSummary(result));
+        detailArea.setText(buildDetail(result));
+        importButton.setEnabled(true);
+    }
+
+    private void setBusy(boolean busy, String status, boolean indeterminateProgress) {
+        browseButton.setEnabled(!busy);
+        previewButton.setEnabled(!busy && selectedFile != null);
+        if (busy) {
+            importButton.setEnabled(false);
+        }
+        cancelButton.setEnabled(true);
+        setCursor(busy ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
+        progressBar.setVisible(busy);
+        progressBar.setIndeterminate(indeterminateProgress);
+        statusLabel.setText(status);
+        if (!busy) {
+            progressBar.setValue(0);
+            progressBar.setString(null);
+        }
+    }
+
+    private void updateProgress(int current, int total) {
+        if (total <= 0) {
+            progressBar.setIndeterminate(true);
+            progressBar.setString("Loading vehicles…");
+            statusLabel.setText("Loading vehicles…");
+            return;
+        }
+        progressBar.setIndeterminate(false);
+        progressBar.setMaximum(total);
+        progressBar.setValue(Math.min(current, total));
+        if (current == 0) {
+            progressBar.setString("Loading vehicles…");
+            statusLabel.setText("Loading vehicles…");
+        } else {
+            progressBar.setString(current + " / " + total);
+            statusLabel.setText("Previewing row " + current + " of " + total + "…");
+        }
     }
 
     private void importSpreadsheet() {

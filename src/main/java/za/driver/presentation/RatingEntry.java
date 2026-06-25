@@ -1,4 +1,4 @@
 package za.driver.presentation;
 
-public record RatingEntry(String label, double starsOutOfFive) {
+public record RatingEntry(String label, double score) {
 }

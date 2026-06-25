@@ -12,13 +12,20 @@ import java.util.Map;
 
 public final class CsvSpreadsheetReader {
 
+    private static final char UTF8_BOM = '\uFEFF';
+
     public SpreadsheetDataSheet readDataSheet(Path file) throws IOException {
         List<List<String>> rows = new ArrayList<>();
         try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             String line;
+            boolean firstLine = true;
             while ((line = reader.readLine()) != null) {
                 if (line.isBlank()) {
                     continue;
+                }
+                if (firstLine) {
+                    line = stripUtf8Bom(line);
+                    firstLine = false;
                 }
                 rows.add(parseRow(line));
             }
@@ -60,6 +67,13 @@ public final class CsvSpreadsheetReader {
                         + ": expected '" + expected.get(i) + "' but found '" + actual + "'");
             }
         }
+    }
+
+    static String stripUtf8Bom(String line) {
+        if (line != null && !line.isEmpty() && line.charAt(0) == UTF8_BOM) {
+            return line.substring(1);
+        }
+        return line;
     }
 
     static List<String> parseRow(String line) {

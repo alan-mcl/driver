@@ -3,6 +3,7 @@ package za.driver.spreadsheet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,11 +38,18 @@ public final class SpreadsheetImportService {
     }
 
     public SpreadsheetImportResult preview(Path file) throws IOException {
+        return preview(file, null);
+    }
+
+    public SpreadsheetImportResult preview(Path file, SpreadsheetImportProgress progress) throws IOException {
         SpreadsheetDataSheet sheet = reader.readDataSheet(file);
+        int totalRows = sheet.rows().size();
+        VehicleIndex vehicleIndex = loadVehicleIndex(progress, totalRows);
         SpreadsheetImportResult.Builder builder = new SpreadsheetImportResult.Builder();
         Map<String, Integer> seenIdentities = new HashMap<>();
 
-        for (int index = 0; index < sheet.rows().size(); index++) {
+        for (int index = 0; index < totalRows; index++) {
+            reportProgress(progress, index + 1, totalRows);
             Map<String, String> row = sheet.rows().get(index);
             int rowNumber = index + 2;
             if (!VehicleSpreadsheetMapper.hasImportableData(row)) {
@@ -72,7 +80,7 @@ public final class SpreadsheetImportService {
                 continue;
             }
 
-            Optional<Vehicle> existingByIdentity = findByIdentity(
+            Optional<Vehicle> existingByIdentity = vehicleIndex.findByIdentity(
                     partial.getMake(), partial.getModel(), partial.getDerivative());
             ScoringOverrides scoringOverrides = VehicleSpreadsheetMapper.scoringOverridesFromRow(row);
 
@@ -100,7 +108,7 @@ public final class SpreadsheetImportService {
                     builder.addError("Row " + rowNumber + ": invalid id '" + idValue + "'");
                     continue;
                 }
-                Optional<Vehicle> existingById = findById(vehicleId);
+                Optional<Vehicle> existingById = vehicleIndex.findById(vehicleId);
                 if (existingById.isPresent()) {
                     builder.addError("Row " + rowNumber + ": id " + vehicleId + " already exists");
                     continue;
@@ -123,21 +131,21 @@ public final class SpreadsheetImportService {
         return builder.build();
     }
 
-    private Optional<Vehicle> findByIdentity(String make, String model, String derivative) throws IOException {
+    private VehicleIndex loadVehicleIndex(SpreadsheetImportProgress progress, int totalRows) throws IOException {
+        reportProgress(progress, 0, totalRows);
+        List<Vehicle> vehicles;
         if (vehicleService != null) {
-            return vehicleService.findByIdentity(make, model, derivative);
+            vehicles = vehicleService.findAll();
+        } else {
+            vehicles = vehicleRepository.findAll();
         }
-        return vehicleRepository.findAll().stream()
-                .filter(vehicle -> VehicleIdentity.matches(make, model, derivative,
-                        vehicle.getMake(), vehicle.getModel(), vehicle.getDerivative()))
-                .findFirst();
+        return VehicleIndex.from(vehicles);
     }
 
-    private Optional<Vehicle> findById(UUID id) throws IOException {
-        if (vehicleService != null) {
-            return vehicleService.findById(id);
+    private static void reportProgress(SpreadsheetImportProgress progress, int current, int total) {
+        if (progress != null) {
+            progress.onProgress(current, total);
         }
-        return vehicleRepository.findById(id);
     }
 
     private static String identityKey(Vehicle vehicle) {
@@ -160,5 +168,29 @@ public final class SpreadsheetImportService {
             }
         }
         return count;
+    }
+
+    private record VehicleIndex(Map<String, Vehicle> byIdentity, Map<UUID, Vehicle> byId) {
+
+        static VehicleIndex from(List<Vehicle> vehicles) {
+            Map<String, Vehicle> byIdentity = new HashMap<>();
+            Map<UUID, Vehicle> byId = new HashMap<>();
+            for (Vehicle vehicle : vehicles) {
+                byId.put(vehicle.getId(), vehicle);
+                byIdentity.putIfAbsent(identityKey(vehicle), vehicle);
+            }
+            return new VehicleIndex(byIdentity, byId);
+        }
+
+        Optional<Vehicle> findByIdentity(String make, String model, String derivative) {
+            String key = VehicleIdentity.normalize(make) + "|"
+                    + VehicleIdentity.normalize(model) + "|"
+                    + VehicleIdentity.normalize(derivative);
+            return Optional.ofNullable(byIdentity.get(key));
+        }
+
+        Optional<Vehicle> findById(UUID id) {
+            return Optional.ofNullable(byId.get(id));
+        }
     }
 }

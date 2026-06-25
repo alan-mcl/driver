@@ -245,11 +245,7 @@
 
 .trim-rating-block li.overall-rating {
   font-weight: 700;
-  background: rgba(218, 165, 32, 0.14);
-  border: 1px solid rgba(218, 165, 32, 0.4);
-  border-radius: 6px;
-  padding: 0.5rem 0.65rem;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.2rem;
 }
 
 .trim-rating-block li.overall-rating .rating-label {

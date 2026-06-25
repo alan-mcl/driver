@@ -163,8 +163,9 @@ public final class RevealPresentationBuilder {
                     html.append("><span class=\"rating-label\">")
                             .append(HtmlEscaper.escape(rating.label()))
                             .append("</span><span class=\"rating-value\">")
-                            .append(String.format(Locale.US, "%.1f/5 ", rating.starsOutOfFive()))
-                            .append(ScoreFormatter.starMarkup(rating.starsOutOfFive()))
+                            .append(ScoreFormatter.formatScore(rating.score()))
+                            .append(' ')
+                            .append(ScoreFormatter.starMarkup(rating.score() / 20.0))
                             .append("</span></li>\n");
                 }
                 html.append("              </ul>\n");

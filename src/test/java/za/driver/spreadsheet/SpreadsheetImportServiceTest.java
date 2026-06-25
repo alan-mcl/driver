@@ -284,6 +284,33 @@ class SpreadsheetImportServiceTest {
         assertEquals(85.0, loaded.getDerivedMetrics().getPrestigeScore());
     }
 
+    @Test
+    void preview_reportsProgress() throws IOException {
+        Path file = tempDir.resolve("progress.csv");
+        exportService.export(file, List.of(ScoringTestFixtures.fullVehicle()));
+
+        List<int[]> updates = new ArrayList<>();
+        importService.preview(file, (current, total) -> updates.add(new int[] {current, total}));
+
+        assertFalse(updates.isEmpty());
+        assertEquals(0, updates.get(0)[0]);
+        assertEquals(1, updates.get(0)[1]);
+        assertEquals(1, updates.get(updates.size() - 1)[0]);
+    }
+
+    @Test
+    void export_thenImportWithUtf8Bom_succeeds() throws IOException {
+        Path file = tempDir.resolve("export-bom.csv");
+        Vehicle original = ScoringTestFixtures.fullVehicle();
+        exportService.export(file, List.of(original));
+        String content = java.nio.file.Files.readString(file);
+        java.nio.file.Files.writeString(file, "\uFEFF" + content);
+
+        SpreadsheetImportResult preview = importService.preview(file);
+        assertTrue(preview.isValid());
+        assertEquals(1, preview.updateCount());
+    }
+
     private static Map<String, String> blankRow() {
         Map<String, String> row = new LinkedHashMap<>();
         for (String header : VehicleSpreadsheetSchema.headers()) {

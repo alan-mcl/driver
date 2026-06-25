@@ -237,7 +237,7 @@ public final class ModelGroup {
         List<RatingEntry> ratings = new ArrayList<>();
         Double overall = overallScore(vehicle);
         if (overall != null) {
-            ratings.add(new RatingEntry("Overall", overall / 20.0));
+            ratings.add(new RatingEntry("Overall", overall));
         }
         int weightedCount = profile != null && profile.getWeights() != null ? profile.getWeights().size() : 0;
         List<Metric> metrics = TopWeightedMetrics.topN(profile, Math.max(weightedCount, Metric.values().length));
@@ -248,7 +248,7 @@ public final class ModelGroup {
             }
             ratings.add(new RatingEntry(
                     MetricLabels.displayName(metric),
-                    score / 20.0));
+                    score));
         }
         return ratings;
     }
