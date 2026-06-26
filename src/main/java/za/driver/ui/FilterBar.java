@@ -4,6 +4,10 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -11,14 +15,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.KeyStroke;
 import javax.swing.event.ChangeListener;
 
 import za.driver.model.BodyType;
@@ -71,6 +80,7 @@ public class FilterBar extends JPanel {
                 snapMaxPriceSliderToIncrement();
             }
         });
+        configurePriceSliderKeyboard();
         pricePanel.add(priceValueLabel);
         pricePanel.add(maxPriceSlider);
         updatePriceValueLabel();
@@ -148,6 +158,75 @@ public class FilterBar extends JPanel {
         minOverallSpinner.setValue(0);
         minGarageClearanceSpinner.setValue(0);
         notifyListeners();
+    }
+
+    private void configurePriceSliderKeyboard() {
+        maxPriceSlider.setFocusable(true);
+        maxPriceSlider.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                maxPriceSlider.requestFocusInWindow();
+            }
+        });
+        maxPriceSlider.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_LEFT, KeyEvent.VK_UP -> {
+                        stepMaxPriceSlider(-1);
+                        e.consume();
+                    }
+                    case KeyEvent.VK_RIGHT, KeyEvent.VK_DOWN -> {
+                        stepMaxPriceSlider(1);
+                        e.consume();
+                    }
+                    default -> {
+                    }
+                }
+            }
+        });
+        maxPriceSlider.addPropertyChangeListener("UI", event -> bindPriceSliderKeyActions());
+
+        bindPriceSliderKeyActions();
+    }
+
+    private void bindPriceSliderKeyActions() {
+        InputMap inputMap = maxPriceSlider.getInputMap(JComponent.WHEN_FOCUSED);
+        ActionMap actionMap = maxPriceSlider.getActionMap();
+
+        AbstractAction decrease = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                stepMaxPriceSlider(-1);
+            }
+        };
+        AbstractAction increase = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                stepMaxPriceSlider(1);
+            }
+        };
+
+        actionMap.put("priceDecrease", decrease);
+        actionMap.put("priceIncrease", increase);
+        actionMap.put("negativeIncrement", decrease);
+        actionMap.put("positiveIncrement", increase);
+
+        bindPriceStepKey(inputMap, KeyEvent.VK_LEFT, "priceDecrease");
+        bindPriceStepKey(inputMap, KeyEvent.VK_UP, "priceDecrease");
+        bindPriceStepKey(inputMap, KeyEvent.VK_RIGHT, "priceIncrease");
+        bindPriceStepKey(inputMap, KeyEvent.VK_DOWN, "priceIncrease");
+    }
+
+    private static void bindPriceStepKey(InputMap inputMap, int keyCode, String action) {
+        inputMap.put(KeyStroke.getKeyStroke(keyCode, 0), action);
+    }
+
+    private void stepMaxPriceSlider(int direction) {
+        int current = snappedPrice(maxPriceSlider.getValue());
+        int next = current + direction * PRICE_SLIDER_INCREMENT_ZAR;
+        next = Math.max(maxPriceSlider.getMinimum(), Math.min(maxPriceSlider.getMaximum(), next));
+        maxPriceSlider.setValue(next);
     }
 
     private BigDecimal sliderMaxPrice() {
