@@ -2,7 +2,8 @@ package za.driver;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+
+import com.formdev.flatlaf.FlatLightLaf;
 
 import za.driver.service.AppServices;
 import za.driver.ui.BackgroundTasks;
@@ -21,11 +22,7 @@ public class Application {
                             : new RuntimeException(throwable)));
         });
 
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            // Fall back to default L&F
-        }
+        FlatLightLaf.setup();
 
         SwingUtilities.invokeLater(() -> {
             try {

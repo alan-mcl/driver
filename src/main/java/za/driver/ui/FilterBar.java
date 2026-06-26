@@ -5,8 +5,10 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 import javax.swing.JButton;
@@ -16,6 +18,7 @@ import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
 import javax.swing.event.ChangeListener;
 
 import za.driver.model.BodyType;
@@ -30,11 +33,16 @@ public class FilterBar extends JPanel {
     private static final String ANY = "Any";
     private static final int MIN_PRICE_ZAR = 10_000;
     private static final int DEFAULT_MAX_PRICE_ZAR = 2_000_000;
+    private static final int PRICE_SLIDER_INCREMENT_ZAR = 10_000;
+    private static final int PRICE_VALUE_LABEL_WIDTH_PX = 110;
+    private static final int PRICE_VALUE_LABEL_HEIGHT_PX = 36;
+    private static final int PRICE_SLIDER_WIDTH_PX = 140;
 
     private final JSlider maxPriceSlider = new JSlider(
             MIN_PRICE_ZAR,
             DEFAULT_MAX_PRICE_ZAR,
             DEFAULT_MAX_PRICE_ZAR);
+    private final JLabel priceValueLabel = new JLabel("", SwingConstants.RIGHT);
     private final JComboBox<String> bodyTypeCombo = new JComboBox<>();
     private final JComboBox<String> fuelTypeCombo = new JComboBox<>();
     private final JComboBox<String> statusCombo = new JComboBox<>();
@@ -51,11 +59,21 @@ public class FilterBar extends JPanel {
         populateEnumCombo(statusCombo, VehicleStatus.values());
 
         JPanel pricePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        JLabel priceCaption = new JLabel("Max price");
-        maxPriceSlider.setPreferredSize(new Dimension(200, 36));
-        maxPriceSlider.addChangeListener(e -> notifyListeners());
-        pricePanel.add(priceCaption);
+        maxPriceSlider.setPreferredSize(new Dimension(PRICE_SLIDER_WIDTH_PX, PRICE_VALUE_LABEL_HEIGHT_PX));
+        Dimension priceLabelSize = new Dimension(PRICE_VALUE_LABEL_WIDTH_PX, PRICE_VALUE_LABEL_HEIGHT_PX);
+        priceValueLabel.setPreferredSize(priceLabelSize);
+        priceValueLabel.setMinimumSize(priceLabelSize);
+        priceValueLabel.setMaximumSize(priceLabelSize);
+        maxPriceSlider.addChangeListener(e -> {
+            updatePriceValueLabel();
+            notifyListeners();
+            if (!maxPriceSlider.getValueIsAdjusting()) {
+                snapMaxPriceSliderToIncrement();
+            }
+        });
+        pricePanel.add(priceValueLabel);
         pricePanel.add(maxPriceSlider);
+        updatePriceValueLabel();
 
         JPanel filtersRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         filtersRow.add(pricePanel);
@@ -106,6 +124,8 @@ public class FilterBar extends JPanel {
         if (currentValue > maxPriceSlider.getMaximum()) {
             maxPriceSlider.setValue(maxPriceSlider.getMaximum());
         }
+        snapMaxPriceSliderToIncrement();
+        updatePriceValueLabel();
     }
 
     public VehicleFilterCriteria currentCriteria() {
@@ -121,6 +141,7 @@ public class FilterBar extends JPanel {
 
     private void clear(ActionEvent event) {
         maxPriceSlider.setValue(maxPriceSlider.getMaximum());
+        updatePriceValueLabel();
         bodyTypeCombo.setSelectedIndex(0);
         fuelTypeCombo.setSelectedIndex(0);
         statusCombo.setSelectedIndex(0);
@@ -130,12 +151,30 @@ public class FilterBar extends JPanel {
     }
 
     private BigDecimal sliderMaxPrice() {
-        int value = maxPriceSlider.getValue();
+        return BigDecimal.valueOf(snappedPrice(maxPriceSlider.getValue()));
+    }
+
+    private int snappedPrice(int value) {
         int maximum = maxPriceSlider.getMaximum();
+        int min = maxPriceSlider.getMinimum();
         if (value >= maximum) {
-            return null;
+            return maximum;
         }
-        return BigDecimal.valueOf(value);
+        int snapped = min + Math.round((value - min) / (float) PRICE_SLIDER_INCREMENT_ZAR) * PRICE_SLIDER_INCREMENT_ZAR;
+        return Math.min(Math.max(min, snapped), maximum);
+    }
+
+    private void snapMaxPriceSliderToIncrement() {
+        int snapped = snappedPrice(maxPriceSlider.getValue());
+        if (snapped != maxPriceSlider.getValue()) {
+            maxPriceSlider.setValue(snapped);
+        }
+    }
+
+    private void updatePriceValueLabel() {
+        priceValueLabel.setText("< R "
+                + NumberFormat.getIntegerInstance(Locale.forLanguageTag("en-ZA"))
+                        .format(snappedPrice(maxPriceSlider.getValue())));
     }
 
     private void notifyListeners() {

@@ -1,5 +1,7 @@
 package za.driver.ui;
 
+import java.awt.Color;
+import java.awt.Dimension;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -53,6 +55,9 @@ public class VehicleListPanel extends JPanel {
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setFillsViewportHeight(true);
         table.setAutoCreateRowSorter(true);
+        table.setShowGrid(true);
+        table.setGridColor(new Color(225, 225, 225));
+        table.setIntercellSpacing(new Dimension(1, 1));
         configureRenderers();
         configureColumnWidths();
         filterBar.addChangeListener(criteria -> {

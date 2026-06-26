@@ -2,6 +2,7 @@ package za.driver.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -96,6 +97,9 @@ public class MainFrame extends JFrame {
             return label;
         });
         profileCombo.addActionListener(e -> onProfileComboChanged());
+        Dimension comboSize = new Dimension(220, profileCombo.getPreferredSize().height);
+        profileCombo.setPreferredSize(comboSize);
+        profileCombo.setMaximumSize(comboSize);
         JButton manageProfilesButton = new JButton("Manage Profiles…");
         manageProfilesButton.addActionListener(e -> openProfileManagerDialog());
 
