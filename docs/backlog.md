@@ -16,7 +16,6 @@ Some items below are still described in `design_spec.md` but were deliberately d
 
 ## Scoring profiles
 
-- Additional seed profiles: Budget Focused, Executive, Daily Commuter (Family Focused is seeded today)
 - Historical score tracking across profile changes
 - Per-profile shortlists
 

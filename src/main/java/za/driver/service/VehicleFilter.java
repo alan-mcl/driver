@@ -7,10 +7,8 @@ import za.driver.model.DerivedMetrics;
 import za.driver.model.Dimensions;
 import za.driver.model.Engine;
 import za.driver.model.GarageDimensions;
-import za.driver.model.Metric;
 import za.driver.model.Pricing;
 import za.driver.model.Vehicle;
-import za.driver.scoring.MetricScores;
 
 public final class VehicleFilter {
 
@@ -37,9 +35,6 @@ public final class VehicleFilter {
                 return false;
             }
         }
-        if (!matchesMaxDimension(vehicle.getDimensions(), criteria.maxWidthMm(), criteria.maxHeightMm())) {
-            return false;
-        }
         if (!matchesMinGarageClearance(vehicle.getDimensions(), criteria.minGarageClearanceMm(), garage)) {
             return false;
         }
@@ -48,18 +43,6 @@ public final class VehicleFilter {
         }
 
         DerivedMetrics metrics = vehicle.getDerivedMetrics();
-        if (!meetsMinScore(metrics, Metric.SAFETY, criteria.minSafetyScore())) {
-            return false;
-        }
-        if (!meetsMinScore(metrics, Metric.RUNNING_COST, criteria.minRunningCostScore())) {
-            return false;
-        }
-        if (!meetsMinScore(metrics, Metric.RELIABILITY, criteria.minReliabilityScore())) {
-            return false;
-        }
-        if (!meetsMinScore(metrics, Metric.AWESOMENESS, criteria.minAwesomenessScore())) {
-            return false;
-        }
         if (criteria.minOverallScore() != null) {
             if (metrics == null || metrics.getOverallScore() == null) {
                 return false;
@@ -86,29 +69,6 @@ public final class VehicleFilter {
             return false;
         }
         return true;
-    }
-
-    private static boolean matchesMaxDimension(Dimensions dimensions, Integer maxWidthMm, Integer maxHeightMm) {
-        if ((maxWidthMm == null || maxWidthMm <= 0) && (maxHeightMm == null || maxHeightMm <= 0)) {
-            return true;
-        }
-        Integer width = dimensions == null ? null : dimensions.getWidthMm();
-        Integer height = dimensions == null ? null : dimensions.getHeightMm();
-        if (maxWidthMm != null && maxWidthMm > 0 && width != null && width > maxWidthMm) {
-            return false;
-        }
-        if (maxHeightMm != null && maxHeightMm > 0 && height != null && height > maxHeightMm) {
-            return false;
-        }
-        return true;
-    }
-
-    private static boolean meetsMinScore(DerivedMetrics metrics, Metric metric, Double minScore) {
-        if (minScore == null || minScore <= 0.0) {
-            return true;
-        }
-        Double score = MetricScores.score(metrics, metric);
-        return score != null && score >= minScore;
     }
 
     private static boolean matchesMinGarageClearance(

@@ -428,9 +428,13 @@ Rules:
 - If the profile is null, has no weights, or no metric scores exist → `overallScore = null`.
 - Base metrics not chosen as top metrics do not participate in overall score directly; they feed the aggregate metric only.
 
-### Default profile: Family Focused
+### Seed profiles
 
-Seeded by `DefaultProfileSeeder` (UUID `6ba7b810-9dad-11d1-80b4-00c04fd430c8`):
+Four built-in profiles are seeded by `DefaultProfileSeeder` on startup (fixed UUIDs; missing profiles are added without overwriting existing files):
+
+#### Family Focused
+
+UUID `6ba7b810-9dad-11d1-80b4-00c04fd430c8`:
 
 | Metric | Profile weight |
 |--------|----------------|
@@ -443,7 +447,52 @@ Seeded by `DefaultProfileSeeder` (UUID `6ba7b810-9dad-11d1-80b4-00c04fd430c8`):
 
 Aggregate components (Comfort, Daily Driver, Technology, Prestige): 15%, 15%, 15%, 55% respectively.
 
-The active profile is fully configurable via **Config → Manage Profiles…** or the toolbar profile selector (profile name, top-metric selection, aggregate name/weight, and aggregate composition). The active profile id is persisted in `data/app-config.json`. Switching profiles reloads vehicle scores live without re-importing vehicles.
+#### Budget Focused
+
+UUID `6ba7b811-9dad-11d1-80b4-00c04fd430c8`:
+
+| Metric | Profile weight |
+|--------|----------------|
+| Running Cost | 35 |
+| Reliability | 30 |
+| Safety | 20 |
+| Daily Driver | 5 |
+| Extras (aggregate name) | 10 |
+| **Total** | **100** |
+
+Aggregate components (Comfort, Technology, Performance, Prestige): 30%, 30%, 20%, 20% respectively.
+
+#### Executive
+
+UUID `6ba7b812-9dad-11d1-80b4-00c04fd430c8`:
+
+| Metric | Profile weight |
+|--------|----------------|
+| Prestige | 25 |
+| Comfort | 25 |
+| Performance | 20 |
+| Technology | 15 |
+| Ownership (aggregate name) | 15 |
+| **Total** | **100** |
+
+Aggregate components (Safety, Reliability, Running Cost, Daily Driver): 30%, 30%, 20%, 20% respectively.
+
+#### Daily Commuter
+
+UUID `6ba7b813-9dad-11d1-80b4-00c04fd430c8`:
+
+| Metric | Profile weight |
+|--------|----------------|
+| Daily Driver | 30 |
+| Running Cost | 25 |
+| Reliability | 25 |
+| Safety | 10 |
+| Liveability (aggregate name) | 10 |
+| **Total** | **100** |
+
+Aggregate components (Comfort, Technology, Performance, Prestige): 40%, 30%, 15%, 15% respectively.
+
+The active profile is fully configurable via **Config → Manage Profiles…** or the toolbar profile selector (profile name, top-metric selection, aggregate name/weight, and aggregate composition). The active profile id is persisted in `data/app-config.json`. On first run, **Family Focused** is the default active profile. Switching profiles reloads vehicle scores live without re-importing vehicles.
 
 **Legacy migration:** pre-Awesomeness profiles that list Comfort, Daily Driver, Technology, and/or Prestige as separate profile-level weights (without a five-slot structure) are migrated automatically — those weights are summed into the aggregate slot. Profiles that already use the five-slot format (four top base metrics plus `AWESOMENESS`) are not re-migrated, even when Technology or Prestige are chosen as top metrics. Profiles missing `aggregateName` or `aggregateComponents` are backfilled with `"Awesomeness"` and the default composition on load.
 

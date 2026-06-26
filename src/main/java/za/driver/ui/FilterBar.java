@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -39,15 +37,9 @@ public class FilterBar extends JPanel {
             DEFAULT_MAX_PRICE_ZAR);
     private final JComboBox<String> bodyTypeCombo = new JComboBox<>();
     private final JComboBox<String> fuelTypeCombo = new JComboBox<>();
-    private final JSpinner minSafetySpinner = scoreSpinner();
-    private final JSpinner minRunningCostSpinner = scoreSpinner();
-    private final JSpinner minReliabilitySpinner = scoreSpinner();
-    private final JSpinner minAwesomenessSpinner = scoreSpinner();
-    private final JSpinner minOverallSpinner = scoreSpinner();
-    private final JSpinner maxWidthSpinner = dimensionSpinner();
-    private final JSpinner maxHeightSpinner = dimensionSpinner();
-    private final JSpinner minGarageClearanceSpinner = dimensionSpinner();
     private final JComboBox<String> statusCombo = new JComboBox<>();
+    private final JSpinner minOverallSpinner = scoreSpinner();
+    private final JSpinner minGarageClearanceSpinner = dimensionSpinner();
 
     private final List<Consumer<VehicleFilterCriteria>> listeners = new ArrayList<>();
 
@@ -65,54 +57,30 @@ public class FilterBar extends JPanel {
         pricePanel.add(priceCaption);
         pricePanel.add(maxPriceSlider);
 
-        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        row1.add(pricePanel);
-        row1.add(new JLabel("Body"));
-        row1.add(bodyTypeCombo);
-        row1.add(new JLabel("Fuel"));
-        row1.add(fuelTypeCombo);
-        row1.add(new JLabel("Min Safety"));
-        row1.add(minSafetySpinner);
-        row1.add(new JLabel("Min Run Cost"));
-        row1.add(minRunningCostSpinner);
-        row1.add(new JLabel("Min Reliability"));
-        row1.add(minReliabilitySpinner);
-        row1.add(new JLabel("Min Awesomeness"));
-        row1.add(minAwesomenessSpinner);
-        row1.add(new JLabel("Min Overall"));
-        row1.add(minOverallSpinner);
-
-        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        row2.add(new JLabel("Max width (mm)"));
-        row2.add(maxWidthSpinner);
-        row2.add(new JLabel("Max height (mm)"));
-        row2.add(maxHeightSpinner);
-        row2.add(new JLabel("Min clearance (mm)"));
-        row2.add(minGarageClearanceSpinner);
-        row2.add(new JLabel("Status"));
-        row2.add(statusCombo);
+        JPanel filtersRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        filtersRow.add(pricePanel);
+        filtersRow.add(new JLabel("Body"));
+        filtersRow.add(bodyTypeCombo);
+        filtersRow.add(new JLabel("Fuel"));
+        filtersRow.add(fuelTypeCombo);
+        filtersRow.add(new JLabel("Status"));
+        filtersRow.add(statusCombo);
+        filtersRow.add(new JLabel("Min Overall"));
+        filtersRow.add(minOverallSpinner);
+        filtersRow.add(new JLabel("Min clearance (mm)"));
+        filtersRow.add(minGarageClearanceSpinner);
 
         JButton clearButton = new JButton("Clear");
         clearButton.addActionListener(this::clear);
-        row2.add(clearButton);
+        filtersRow.add(clearButton);
 
-        JPanel rows = new JPanel();
-        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
-        rows.add(row1);
-        rows.add(row2);
-        add(rows, BorderLayout.CENTER);
+        add(filtersRow, BorderLayout.CENTER);
 
         ChangeListener changeListener = e -> notifyListeners();
         bodyTypeCombo.addActionListener(e -> notifyListeners());
         fuelTypeCombo.addActionListener(e -> notifyListeners());
         statusCombo.addActionListener(e -> notifyListeners());
-        minSafetySpinner.addChangeListener(changeListener);
-        minRunningCostSpinner.addChangeListener(changeListener);
-        minReliabilitySpinner.addChangeListener(changeListener);
-        minAwesomenessSpinner.addChangeListener(changeListener);
         minOverallSpinner.addChangeListener(changeListener);
-        maxWidthSpinner.addChangeListener(changeListener);
-        maxHeightSpinner.addChangeListener(changeListener);
         minGarageClearanceSpinner.addChangeListener(changeListener);
     }
 
@@ -146,13 +114,7 @@ public class FilterBar extends JPanel {
                 sliderMaxPrice(),
                 selectedEnum(bodyTypeCombo, BodyType.class),
                 selectedEnum(fuelTypeCombo, FuelType.class),
-                spinnerScore(minSafetySpinner),
-                spinnerScore(minRunningCostSpinner),
-                spinnerScore(minReliabilitySpinner),
-                spinnerScore(minAwesomenessSpinner),
                 spinnerScore(minOverallSpinner),
-                spinnerDimension(maxWidthSpinner),
-                spinnerDimension(maxHeightSpinner),
                 spinnerDimension(minGarageClearanceSpinner),
                 selectedEnum(statusCombo, VehicleStatus.class));
     }
@@ -162,13 +124,7 @@ public class FilterBar extends JPanel {
         bodyTypeCombo.setSelectedIndex(0);
         fuelTypeCombo.setSelectedIndex(0);
         statusCombo.setSelectedIndex(0);
-        minSafetySpinner.setValue(0);
-        minRunningCostSpinner.setValue(0);
-        minReliabilitySpinner.setValue(0);
-        minAwesomenessSpinner.setValue(0);
         minOverallSpinner.setValue(0);
-        maxWidthSpinner.setValue(0);
-        maxHeightSpinner.setValue(0);
         minGarageClearanceSpinner.setValue(0);
         notifyListeners();
     }

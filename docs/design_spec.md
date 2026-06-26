@@ -348,13 +348,7 @@ Users may define multiple scoring profiles. Each profile selects four top base m
 - Toolbar profile selector — switch active profile; scores reload live
 - **Config → Manage Profiles…** — create, duplicate, edit, and delete profiles
 - Active profile persisted in `data/app-config.json`
-- Family Focused profile seeded on first run
-
-**Examples** (not seeded; users create their own via Manage Profiles):
-
-- Budget Focused
-- Executive
-- Daily Commuter
+- Seed profiles on first run: Family Focused, Budget Focused, Executive, Daily Commuter (Family Focused is default active)
 
 Overall score:
 

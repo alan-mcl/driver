@@ -91,7 +91,7 @@ public final class AppServices {
         SpreadsheetExportService spreadsheetExportService = new SpreadsheetExportService();
         SpreadsheetImportService spreadsheetImportService = new SpreadsheetImportService(vehicleService);
         PresentationExportService presentationExportService = new PresentationExportService();
-        DefaultProfileSeeder.ensureDefaultProfile(profileRepository);
+        DefaultProfileSeeder.ensureDefaultProfiles(profileRepository);
         List<ScoringProfile> profiles = profileService.findAll();
         AppConfigService appConfigService = new AppConfigService(new AppConfigRepository(dataRoot));
         ScoringProfile activeProfile = resolveActiveProfile(profiles, appConfigService.getActiveProfileId());
@@ -124,6 +124,11 @@ public final class AppServices {
                 if (activeProfileId.equals(profile.getId())) {
                     return profile;
                 }
+            }
+        }
+        for (ScoringProfile profile : profiles) {
+            if (DefaultProfileSeeder.FAMILY_FOCUSED_ID.equals(profile.getId())) {
+                return profile;
             }
         }
         return profiles.get(0);

@@ -273,6 +273,7 @@ public class MainFrame extends JFrame {
                         vehicles -> {
                             listPanel.setActiveProfile(services.activeProfile);
                             detailPanel.setActiveProfile(services.activeProfile);
+                            updateScatterPlotProfile();
                             applyVehicleList(vehicles);
                         },
                         error -> {
@@ -316,6 +317,7 @@ public class MainFrame extends JFrame {
         rebuildProfileCombo();
         listPanel.setActiveProfile(services.activeProfile);
         detailPanel.setActiveProfile(services.activeProfile);
+        updateScatterPlotProfile();
         UUID selectedId = listPanel.getSelectedVehicle() != null ? listPanel.getSelectedVehicle().getId() : null;
         BackgroundTasks.run(
                 this,
@@ -365,6 +367,7 @@ public class MainFrame extends JFrame {
         if (scatterPlotDialog == null) {
             scatterPlotDialog = new ScatterPlotDialog(
                     this,
+                    services.activeProfile,
                     listPanel::getVisibleVehicles,
                     vehicle -> confirmNavigateAway(
                             () -> {
@@ -374,10 +377,17 @@ public class MainFrame extends JFrame {
                             },
                             () -> {}));
         } else {
+            scatterPlotDialog.setActiveProfile(services.activeProfile);
             scatterPlotDialog.refreshData();
         }
         scatterPlotDialog.setVisible(true);
         scatterPlotDialog.toFront();
+    }
+
+    private void updateScatterPlotProfile() {
+        if (scatterPlotDialog != null) {
+            scatterPlotDialog.setActiveProfile(services.activeProfile);
+        }
     }
 
     private void openImportDialog() {

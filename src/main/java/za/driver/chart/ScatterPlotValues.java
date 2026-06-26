@@ -21,12 +21,8 @@ public final class ScatterPlotValues {
         return switch (axis) {
             case PRICE -> priceValue(vehicle.getPricing());
             case OVERALL_SCORE -> scoreValue(vehicle.getDerivedMetrics(), DerivedMetrics::getOverallScore);
-            case SAFETY -> metricValue(vehicle, Metric.SAFETY);
-            case RUNNING_COST -> metricValue(vehicle, Metric.RUNNING_COST);
-            case RELIABILITY -> metricValue(vehicle, Metric.RELIABILITY);
-            case PERFORMANCE -> metricValue(vehicle, Metric.PERFORMANCE);
-            case AWESOMENESS -> metricValue(vehicle, Metric.AWESOMENESS);
             case SCORE_PER_100K -> scoreValue(vehicle.getDerivedMetrics(), DerivedMetrics::getScorePer100k);
+            default -> metricValue(vehicle, axis.metric());
         };
     }
 

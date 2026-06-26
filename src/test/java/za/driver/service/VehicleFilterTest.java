@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import za.driver.model.BodyType;
 import za.driver.model.DerivedMetrics;
-import za.driver.model.Dimensions;
 import za.driver.model.Engine;
 import za.driver.model.FuelType;
 import za.driver.model.GarageDimensions;
@@ -96,40 +95,14 @@ class VehicleFilterTest {
     }
 
     @Test
-    void matches_minScores_filtersCorrectly() {
+    void matches_minOverallScore_filtersCorrectly() {
         assertTrue(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, 80.0, 60.0, 85.0, 70.0, 70.0, null, null, null, null),
+                new VehicleFilterCriteria(null, null, null, null, 70.0, null, null),
                 GARAGE));
         assertFalse(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, 90.0, null, null, null, null, null, null, null, null),
-                GARAGE));
-        assertFalse(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, 80.0, null, null, null, null),
-                GARAGE));
-    }
-
-    @Test
-    void matches_minAwesomeness_filtersCorrectly() {
-        assertTrue(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, 75.0, null, null, null, null, null),
-                GARAGE));
-        assertFalse(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, 80.0, null, null, null, null, null),
-                GARAGE));
-        assertTrue(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, 0.0, null, null, null, null, null),
+                new VehicleFilterCriteria(null, null, null, null, 80.0, null, null),
                 GARAGE));
     }
 
@@ -143,58 +116,15 @@ class VehicleFilterTest {
     }
 
     @Test
-    void matches_maxDimensions_filtersCorrectly() {
-        Dimensions dimensions = vehicle.getDimensions();
-        dimensions.setWidthMm(1780);
-        dimensions.setHeightMm(1435);
-
-        assertTrue(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, 1800, 1500, null, null),
-                GARAGE));
-        assertFalse(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, 1700, null, null, null),
-                GARAGE));
-        assertFalse(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, null, 1400, null, null),
-                GARAGE));
-    }
-
-    @Test
-    void matches_maxDimensions_unknownDimension_passes() {
-        vehicle.setDimensions(null);
-        assertTrue(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, 1800, 1500, null, null),
-                GARAGE));
-        Dimensions dimensions = new Dimensions();
-        dimensions.setWidthMm(1780);
-        vehicle.setDimensions(dimensions);
-        assertTrue(VehicleFilter.matches(
-                vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, 1800, 1500, null, null),
-                GARAGE));
-    }
-
-    @Test
     void matches_status_filtersCorrectly() {
         vehicle.setStatus(VehicleStatus.CANDIDATE);
         assertTrue(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, null, null, null, VehicleStatus.CANDIDATE),
+                new VehicleFilterCriteria(null, null, null, null, null, null, VehicleStatus.CANDIDATE),
                 GARAGE));
         assertFalse(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, null, null, null, VehicleStatus.SHORTLISTED),
+                new VehicleFilterCriteria(null, null, null, null, null, null, VehicleStatus.SHORTLISTED),
                 GARAGE));
     }
 
@@ -203,18 +133,15 @@ class VehicleFilterTest {
         // Corolla fixture clearance ≈ 505 mm
         assertTrue(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, null, null, 500, null),
+                new VehicleFilterCriteria(null, null, null, null, null, 500, null),
                 GARAGE));
         assertFalse(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, null, null, 600, null),
+                new VehicleFilterCriteria(null, null, null, null, null, 600, null),
                 GARAGE));
         assertTrue(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, null, null, 0, null),
+                new VehicleFilterCriteria(null, null, null, null, null, 0, null),
                 GARAGE));
     }
 
@@ -223,8 +150,7 @@ class VehicleFilterTest {
         vehicle.setDimensions(null);
         assertFalse(VehicleFilter.matches(
                 vehicle,
-                new VehicleFilterCriteria(
-                        null, null, null, null, null, null, null, null, null, null, null, 100, null),
+                new VehicleFilterCriteria(null, null, null, null, null, 100, null),
                 GARAGE));
     }
 
@@ -233,7 +159,6 @@ class VehicleFilterTest {
             BigDecimal maxPrice,
             BodyType bodyType,
             FuelType fuelType) {
-        return new VehicleFilterCriteria(
-                minPrice, maxPrice, bodyType, fuelType, null, null, null, null, null, null, null, null, null);
+        return new VehicleFilterCriteria(minPrice, maxPrice, bodyType, fuelType, null, null, null);
     }
 }

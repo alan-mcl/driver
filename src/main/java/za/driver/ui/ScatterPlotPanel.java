@@ -28,6 +28,7 @@ import za.driver.chart.ScatterPlotAxis;
 import za.driver.chart.ScatterPlotData;
 import za.driver.chart.ScatterPlotPoint;
 import za.driver.chart.ScatterPlotStatistics;
+import za.driver.model.ScoringProfile;
 import za.driver.model.Vehicle;
 
 public class ScatterPlotPanel extends JPanel {
@@ -49,6 +50,7 @@ public class ScatterPlotPanel extends JPanel {
     private ScatterPlotData plotData = new ScatterPlotData(List.of(), Map.of(), Map.of(), 0);
     private ScatterPlotAxis xAxis = ScatterPlotAxis.PRICE;
     private ScatterPlotAxis yAxis = ScatterPlotAxis.OVERALL_SCORE;
+    private ScoringProfile activeProfile;
     private List<ScatterPlotPoint> renderedPoints = List.of();
     private Consumer<Vehicle> pointSelectedListener;
 
@@ -81,10 +83,11 @@ public class ScatterPlotPanel extends JPanel {
         this.pointSelectedListener = listener;
     }
 
-    public void setPlot(ScatterPlotData data, ScatterPlotAxis xAxis, ScatterPlotAxis yAxis) {
+    public void setPlot(ScatterPlotData data, ScatterPlotAxis xAxis, ScatterPlotAxis yAxis, ScoringProfile profile) {
         this.plotData = data != null ? data : new ScatterPlotData(List.of(), Map.of(), Map.of(), 0);
         this.xAxis = xAxis;
         this.yAxis = yAxis;
+        this.activeProfile = profile;
         repaint();
     }
 
@@ -130,8 +133,8 @@ public class ScatterPlotPanel extends JPanel {
 
             Font labelFont = g.getFont().deriveFont(Font.BOLD, 11f);
             g.setFont(labelFont);
-            drawAxisTitle(g, xAxis.label(), plotLeft + plotWidth / 2, getHeight() - 12, true);
-            drawAxisTitle(g, yAxis.label(), 14, plotTop + plotHeight / 2, false);
+            drawAxisTitle(g, axisLabel(xAxis), plotLeft + plotWidth / 2, getHeight() - 12, true);
+            drawAxisTitle(g, axisLabel(yAxis), 14, plotTop + plotHeight / 2, false);
 
             drawReferenceLines(g, points, xRange, yRange, plotLeft, plotTop, plotWidth, plotHeight);
 
@@ -395,6 +398,10 @@ public class ScatterPlotPanel extends JPanel {
         }
         double padding = (max - min) * 0.05;
         return new double[] {min - padding, max + padding};
+    }
+
+    private String axisLabel(ScatterPlotAxis axis) {
+        return activeProfile == null ? axis.label() : axis.label(activeProfile);
     }
 
     private static String formatTick(double value, ScatterPlotAxis axis) {

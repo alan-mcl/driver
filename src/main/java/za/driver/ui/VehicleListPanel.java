@@ -55,7 +55,6 @@ public class VehicleListPanel extends JPanel {
         table.setAutoCreateRowSorter(true);
         configureRenderers();
         configureColumnWidths();
-
         filterBar.addChangeListener(criteria -> {
             filterCriteria = criteria;
             applyFilter();
