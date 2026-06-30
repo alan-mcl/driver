@@ -204,6 +204,10 @@ public class MainFrame extends JFrame {
         scatterPlotItem.addActionListener(e -> openScatterPlotDialog());
         viewMenu.add(scatterPlotItem);
 
+        JMenuItem compareItem = new JMenuItem("Compare…");
+        compareItem.addActionListener(e -> openComparisonDialog());
+        viewMenu.add(compareItem);
+
         JMenu helpMenu = new JMenu("Help");
         helpMenu.setMnemonic(KeyEvent.VK_H);
 
@@ -365,6 +369,16 @@ public class MainFrame extends JFrame {
                     error -> BackgroundTasks.showError(this, "Load Failed", error));
         });
         dialog.setVisible(true);
+    }
+
+    private void openComparisonDialog() {
+        ComparisonDialog dialog = new ComparisonDialog(
+                this,
+                listPanel.getVisibleVehicles(),
+                listPanel.getSelectedVehicles(),
+                services.activeProfile);
+        dialog.setVisible(true);
+        dialog.toFront();
     }
 
     private void openScatterPlotDialog() {
