@@ -34,9 +34,8 @@ Vehicle-level freeform **Notes** (detail tab) replaces most of this scope.
 
 ---
 
-## Comparison and shortlisting
+## Shortlisting
 
-- Side-by-side comparison view (`ComparePanel`) — raw specs and derived metrics
 - Favourite / shortlist flag (distinct from status workflow)
 - Excel-style per-column filters on the vehicle table (FilterBar covers main filters today)
 

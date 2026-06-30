@@ -145,13 +145,18 @@ Missing values are permitted.
 
 ### Vehicle Comparison
 
-The system shall support:
+Implemented as a modeless **Compare…** dialog (**View** menu).
 
-- Side-by-side comparison
-- Raw specification comparison
-- Derived metric comparison
-- Filtering
-- Sorting
+The dialog supports:
+
+- Side-by-side comparison of up to four vehicles in columns
+- A vehicle dropdown at the top of each column, pre-filled from the current table selection
+- Dropdown labels as **Make Model Derivative**, sorted by make, then model, then list price
+- A vertically scrollable comparison table: all vehicle data fields except notes, grouped into sections with list price first
+- Raw specification values and derived metric scores for the active scoring profile
+- True boolean fields rendered as a tick; missing values shown as "-"
+
+Candidates in each dropdown are drawn from the filtered vehicle list. Use FilterBar and table sorting on the main list before opening the comparison.
 
 ---
 

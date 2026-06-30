@@ -16,7 +16,7 @@ Code must align with these documents. Do not invent fields, enums, or metrics.
 
 ## backlog.md
 
-Use for planned-but-not-built features (scoring profiles UI, test drives, comparison view, etc.). Do not implement backlog items unless the user asks.
+Use for planned-but-not-built features (test drives, shortlist flag, etc.). Do not implement backlog items unless the user asks.
 
 ## Import Schema
 

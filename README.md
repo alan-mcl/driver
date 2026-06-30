@@ -45,6 +45,7 @@ Back up `data/` to preserve your research. Run the JAR from a directory where yo
 - Multiple scoring profiles with toolbar selector; create, duplicate, edit, and delete via **Config → Manage Profiles…**
 - Configurable top metrics, aggregate name/weight, and aggregate composition per profile
 - Star ratings and scatter plot for fleet comparison
+- Side-by-side vehicle comparison (**View → Compare…**): up to four columns, raw specs and derived scores
 - Freeform notes per vehicle
 
 ## Documentation
