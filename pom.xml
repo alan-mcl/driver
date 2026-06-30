@@ -6,7 +6,7 @@
 
     <groupId>za.driver</groupId>
     <artifactId>driver</artifactId>
-    <version>1.1</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
 
     <name>Driver</name>

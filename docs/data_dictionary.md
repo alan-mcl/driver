@@ -120,9 +120,14 @@ Represents a specific vehicle derivative.
 | Value |
 |---------|
 | MANUAL |
+| IMT |
+| AMT |
 | AUTOMATIC |
 | CVT |
+| SEMI_AUTOMATIC |
 | DCT |
+| SEQUENTIAL |
+| TIPTRONIC |
 
 ---
 

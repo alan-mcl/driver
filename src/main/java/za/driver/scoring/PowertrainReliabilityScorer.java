@@ -130,19 +130,24 @@ public final class PowertrainReliabilityScorer {
             return null;
         }
         return switch (transmission.getType()) {
-            case MANUAL -> POWERTRAIN_MANUAL_ADJ;
-            case AUTOMATIC -> POWERTRAIN_AUTOMATIC_ADJ;
+            case MANUAL, IMT, AMT -> POWERTRAIN_MANUAL_ADJ;
+            case AUTOMATIC, SEMI_AUTOMATIC, TIPTRONIC -> POWERTRAIN_AUTOMATIC_ADJ;
             case CVT -> POWERTRAIN_CVT_ADJ;
-            case DCT -> POWERTRAIN_DCT_ADJ;
+            case DCT, SEQUENTIAL -> POWERTRAIN_DCT_ADJ;
         };
     }
 
     private static String transmissionLabel(Transmission transmission) {
         return switch (transmission.getType()) {
             case MANUAL -> "Manual";
+            case IMT -> "Intelligent manual";
+            case AMT -> "Automated manual";
             case AUTOMATIC -> "Automatic";
-            case CVT -> "CVT";
-            case DCT -> "DCT";
+            case CVT -> "Continuously variable (CVT)";
+            case SEMI_AUTOMATIC -> "Semi-automatic";
+            case DCT -> "Dual-clutch (DCT)";
+            case SEQUENTIAL -> "Sequential";
+            case TIPTRONIC -> "Tiptronic";
         };
     }
 

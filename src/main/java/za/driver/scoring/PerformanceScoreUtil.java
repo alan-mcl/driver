@@ -45,9 +45,9 @@ final class PerformanceScoreUtil {
             return PERFORMANCE_TRANSMISSION_NEUTRAL_SCORE;
         }
         return switch (type) {
-            case DCT -> 100.0;
-            case AUTOMATIC -> 80.0;
-            case MANUAL -> 70.0;
+            case DCT, SEQUENTIAL -> 100.0;
+            case AUTOMATIC, SEMI_AUTOMATIC, TIPTRONIC -> 80.0;
+            case MANUAL, IMT, AMT -> 70.0;
             case CVT -> 60.0;
         };
     }

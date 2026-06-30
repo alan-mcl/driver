@@ -234,7 +234,7 @@ Sub-metric weights sum to **100**. Uses **fixed weighting** (no renormalization 
 | Acceleration | `performance.zeroToHundredSeconds` or estimated from power-to-weight | `piecewiseLinear` on time (6/10/15 s → 100/50/0) | 40 |
 | Power-to-weight | derived | `piecewiseLinear` on kW/t (50/80/120 → 0/50/100) | 30 |
 | Torque-to-weight | derived | `piecewiseLinear` on Nm/t (80/150/250 → 0/50/100) | 20 |
-| Transmission | `transmission.type` | Fixed scores (DCT 100, AUTO 80, MANUAL 70, CVT 60; missing → 70) | 10 |
+| Transmission | `transmission.type` | Fixed scores (DCT/Sequential 100; Automatic/Semi-automatic/Tiptronic 80; Manual/IMT/AMT 70; CVT 60; missing → 70) | 10 |
 
 **Mandatory inputs:** `engine.powerKw`, `engine.torqueNm`, `dimensions.kerbWeightKg` (> 0). If any missing → Performance is `null`.
 
@@ -348,10 +348,10 @@ Base **75**, then stacked adjustments (clamp 0–100):
 | Self-charging hybrid (not PHEV) | +3 |
 | PHEV | -10 (skips aspiration/hybrid lines) |
 | EV | +5 (skips aspiration/hybrid lines) |
-| Manual | +5 |
-| Automatic | +5 |
+| Manual / IMT / AMT | +5 |
+| Automatic / Semi-automatic / Tiptronic | +5 |
 | CVT | -5 |
-| DCT | -8 |
+| DCT / Sequential | -8 |
 
 Missing transmission → no transmission adjustment. Missing engine fuel type **and** aspiration → powertrain unavailable.
 

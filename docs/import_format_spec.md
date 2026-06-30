@@ -197,7 +197,7 @@ Omit entire nested objects if no fields within them are known.
 
 | Field | Type | Values |
 |-------|------|--------|
-| `type` | enum | `MANUAL`, `AUTOMATIC`, `CVT`, `DCT` |
+| `type` | enum | `MANUAL`, `IMT`, `AMT`, `AUTOMATIC`, `CVT`, `SEMI_AUTOMATIC`, `DCT`, `SEQUENTIAL`, `TIPTRONIC` |
 | `gears` | integer | Gear count (omit for CVT if not stated) |
 | `drivetrain` | enum | `FWD`, `RWD`, `AWD`, `FOUR_WD` |
 
@@ -484,7 +484,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
 
 ### Transmission type
 
-`MANUAL`, `AUTOMATIC`, `CVT`, `DCT`
+`MANUAL`, `IMT`, `AMT`, `AUTOMATIC`, `CVT`, `SEMI_AUTOMATIC`, `DCT`, `SEQUENTIAL`, `TIPTRONIC`
 
 ### Drivetrain type
 
