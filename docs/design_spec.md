@@ -382,6 +382,18 @@ Supported filters include:
 
 View → Scatter Plot opens a modeless chart of the **currently filtered** vehicle list. Users choose X and Y axes from price, overall score, key metric scores, and Score/R100k. Points are labelled by vehicle and coloured by make; clicking a point selects that vehicle in the list. Display-only — does not affect scoring.
 
+### Price Discovery
+
+View → Price Discovery opens a modeless chart for **2–12 table-selected** vehicles. One vehicle is chosen as the **benchmark**; its list-price Score/R100k defines a horizontal target line. All other selected vehicles are drawn as negotiation curves (`scorePer100k = overallScore / price × 100_000`) with list-price markers. Where a curve crosses the benchmark line, the chart annotates the **target price** — the negotiated price at which that vehicle would match the benchmark's value at list.
+
+A summary table below the chart lists each non-benchmark vehicle's list price, list Score/R100k, target price vs benchmark, discount required (ZAR and %), and status ("Beats at list" or "Needs negotiation"). Clicking a point selects that vehicle in the main list. Display-only — does not affect scoring.
+
+Crossover formula:
+
+```text
+targetPrice = subject.overallScore × benchmark.priceZar / benchmark.overallScore
+```
+
 ---
 
 ## Elimination Tracking

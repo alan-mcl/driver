@@ -54,6 +54,7 @@ public class MainFrame extends JFrame {
     private final JComboBox<ScoringProfile> profileCombo = new JComboBox<>();
     private final Set<UUID> persistedIds = new HashSet<>();
     private ScatterPlotDialog scatterPlotDialog;
+    private PriceDiscoveryDialog priceDiscoveryDialog;
     private UUID lastSelectedId;
     private boolean selectionGuard;
     private boolean profileSwitchGuard;
@@ -208,6 +209,10 @@ public class MainFrame extends JFrame {
         compareItem.addActionListener(e -> openComparisonDialog());
         viewMenu.add(compareItem);
 
+        JMenuItem priceDiscoveryItem = new JMenuItem("Price Discovery…");
+        priceDiscoveryItem.addActionListener(e -> openPriceDiscoveryDialog());
+        viewMenu.add(priceDiscoveryItem);
+
         JMenu helpMenu = new JMenu("Help");
         helpMenu.setMnemonic(KeyEvent.VK_H);
 
@@ -282,6 +287,7 @@ public class MainFrame extends JFrame {
                             listPanel.setActiveProfile(services.activeProfile);
                             detailPanel.setActiveProfile(services.activeProfile);
                             updateScatterPlotProfile();
+                            updatePriceDiscoveryProfile();
                             applyVehicleList(vehicles);
                         },
                         error -> {
@@ -326,6 +332,7 @@ public class MainFrame extends JFrame {
         listPanel.setActiveProfile(services.activeProfile);
         detailPanel.setActiveProfile(services.activeProfile);
         updateScatterPlotProfile();
+        updatePriceDiscoveryProfile();
         UUID selectedId = listPanel.getSelectedVehicle() != null ? listPanel.getSelectedVehicle().getId() : null;
         BackgroundTasks.run(
                 this,
@@ -405,6 +412,51 @@ public class MainFrame extends JFrame {
     private void updateScatterPlotProfile() {
         if (scatterPlotDialog != null) {
             scatterPlotDialog.setActiveProfile(services.activeProfile);
+        }
+    }
+
+    private void openPriceDiscoveryDialog() {
+        List<Vehicle> selected = listPanel.getSelectedVehicles();
+        if (selected.size() < 2) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Select 2–12 vehicles in the list for price discovery.",
+                    "Price Discovery",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (selected.size() > 12) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Select at most 12 vehicles for price discovery.",
+                    "Price Discovery",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (priceDiscoveryDialog == null) {
+            priceDiscoveryDialog = new PriceDiscoveryDialog(
+                    this,
+                    services.activeProfile,
+                    listPanel::getSelectedVehicles,
+                    vehicle -> confirmNavigateAway(
+                            () -> {
+                                setListSelection(vehicle.getId());
+                                lastSelectedId = vehicle.getId();
+                                detailPanel.loadVehicle(vehicle, persistedIds.contains(vehicle.getId()));
+                            },
+                            () -> {}));
+        } else {
+            priceDiscoveryDialog.setActiveProfile(services.activeProfile);
+            priceDiscoveryDialog.refreshData();
+        }
+        priceDiscoveryDialog.setVisible(true);
+        priceDiscoveryDialog.toFront();
+    }
+
+    private void updatePriceDiscoveryProfile() {
+        if (priceDiscoveryDialog != null) {
+            priceDiscoveryDialog.setActiveProfile(services.activeProfile);
         }
     }
 
