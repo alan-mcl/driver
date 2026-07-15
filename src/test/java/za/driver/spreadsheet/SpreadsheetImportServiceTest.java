@@ -66,7 +66,7 @@ class SpreadsheetImportServiceTest {
 
         SpreadsheetDataSheet sheet = new CsvSpreadsheetReader().readDataSheet(file);
         var row = sheet.rows().get(0);
-        row.put("pricing.priceZar", "399000");
+        row.put("pricing.listPriceZar", "399000");
         writeRows(file, sheet.headers(), List.of(row));
 
         SpreadsheetImportResult preview = importService.preview(file);
@@ -76,7 +76,7 @@ class SpreadsheetImportServiceTest {
         vehicleService.importSpreadsheet(preview, ScoringTestFixtures.familyFocusedProfile());
 
         Vehicle loaded = repository.findById(VEHICLE_ID).orElseThrow();
-        assertEquals(new BigDecimal("399000"), loaded.getPricing().getPriceZar());
+        assertEquals(new BigDecimal("399000"), loaded.getPricing().getListPriceZar());
         assertEquals("Toyota", loaded.getMake());
         assertEquals(original.getEngine().getPowerKw(), loaded.getEngine().getPowerKw());
     }
@@ -116,7 +116,7 @@ class SpreadsheetImportServiceTest {
         row.put("make", "Honda");
         row.put("model", "Civic");
         row.put("derivative", "1.5T Sport");
-        row.put("pricing.priceZar", "123456");
+        row.put("pricing.listPriceZar", "123456");
         writeRows(file, VehicleSpreadsheetSchema.headers(), List.of(row));
 
         SpreadsheetImportResult preview = importService.preview(file);
@@ -128,7 +128,7 @@ class SpreadsheetImportServiceTest {
         Vehicle loaded = repository.findById(newId).orElseThrow();
         assertEquals("Honda", loaded.getMake());
         assertEquals("Civic", loaded.getModel());
-        assertEquals(new BigDecimal("123456"), loaded.getPricing().getPriceZar());
+        assertEquals(new BigDecimal("123456"), loaded.getPricing().getListPriceZar());
         assertNotNull(loaded.getDerivedMetrics());
     }
 
@@ -138,7 +138,7 @@ class SpreadsheetImportServiceTest {
         Map<String, String> row = blankRow();
         row.put("make", "Honda");
         row.put("model", "Fit");
-        row.put("pricing.priceZar", "250000");
+        row.put("pricing.listPriceZar", "250000");
         writeRows(file, VehicleSpreadsheetSchema.headers(), List.of(row));
 
         SpreadsheetImportResult preview = importService.preview(file);
@@ -152,7 +152,7 @@ class SpreadsheetImportServiceTest {
         Vehicle loaded = repository.findById(assignedId).orElseThrow();
         assertEquals("Honda", loaded.getMake());
         assertEquals("Fit", loaded.getModel());
-        assertEquals(new BigDecimal("250000"), loaded.getPricing().getPriceZar());
+        assertEquals(new BigDecimal("250000"), loaded.getPricing().getListPriceZar());
         assertNotNull(loaded.getDerivedMetrics());
     }
 
@@ -183,7 +183,7 @@ class SpreadsheetImportServiceTest {
         row.put("make", "Toyota");
         row.put("model", "Corolla");
         row.put("derivative", "1.8 XS");
-        row.put("pricing.priceZar", "355000");
+        row.put("pricing.listPriceZar", "355000");
         writeRows(file, VehicleSpreadsheetSchema.headers(), List.of(row));
 
         SpreadsheetImportResult preview = importService.preview(file);
@@ -194,7 +194,7 @@ class SpreadsheetImportServiceTest {
         vehicleService.importSpreadsheet(preview, ScoringTestFixtures.familyFocusedProfile());
 
         Vehicle loaded = repository.findById(VEHICLE_ID).orElseThrow();
-        assertEquals(new BigDecimal("355000"), loaded.getPricing().getPriceZar());
+        assertEquals(new BigDecimal("355000"), loaded.getPricing().getListPriceZar());
     }
 
     @Test

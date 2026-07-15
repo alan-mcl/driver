@@ -99,10 +99,10 @@ public final class PriceDiscoveryBuilder {
         if (metrics == null || metrics.getOverallScore() == null) {
             return null;
         }
-        if (pricing == null || pricing.getPriceZar() == null) {
+        if (pricing == null || pricing.getListPriceZar() == null) {
             return null;
         }
-        double listPrice = pricing.getPriceZar().doubleValue();
+        double listPrice = pricing.getListPriceZar().doubleValue();
         if (listPrice <= 0.0) {
             return null;
         }

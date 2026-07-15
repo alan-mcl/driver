@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import za.driver.model.DerivedMetrics;
 import za.driver.model.ManualScoreOverrides;
+import za.driver.model.Pricing;
 import za.driver.model.Vehicle;
 
 class VehicleRepositoryTest {
@@ -26,6 +29,28 @@ class VehicleRepositoryTest {
     @BeforeEach
     void setUp() {
         repository = new VehicleRepository(tempDir);
+    }
+
+    @Test
+    void load_legacyPriceZarJson_deserializesAsListPrice() throws IOException {
+        String json = """
+                {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "make": "Toyota",
+                  "model": "Corolla",
+                  "pricing": {
+                    "priceZar": 350000,
+                    "priceDate": "2026-06-17"
+                  }
+                }
+                """;
+        Files.createDirectories(tempDir.resolve("vehicles"));
+        Files.writeString(tempDir.resolve("vehicles").resolve("550e8400-e29b-41d4-a716-446655440000.json"), json);
+
+        Vehicle loaded = repository.findAll().get(0);
+
+        assertEquals(new BigDecimal("350000"), loaded.getPricing().getListPriceZar());
+        assertNull(loaded.getPricing().getDealerOfferZar());
     }
 
     @Test
@@ -202,7 +227,7 @@ class VehicleRepositoryTest {
         assertEquals(expected.getOwnership().getPartsSupportScore(), actual.getOwnership().getPartsSupportScore());
         assertEquals(expected.getOwnership().getLocalProduction(), actual.getOwnership().getLocalProduction());
 
-        assertEquals(0, expected.getPricing().getPriceZar().compareTo(actual.getPricing().getPriceZar()));
+        assertEquals(0, expected.getPricing().getListPriceZar().compareTo(actual.getPricing().getListPriceZar()));
         assertEquals(expected.getPricing().getPriceDate(), actual.getPricing().getPriceDate());
 
         assertEquals(expected.getSource().getSourceType(), actual.getSource().getSourceType());

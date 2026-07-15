@@ -29,7 +29,7 @@ class VehicleSpreadsheetMapperTest {
         assertEquals(vehicle.getId(), parsed.getId());
         assertEquals(vehicle.getMake(), parsed.getMake());
         assertEquals(vehicle.getEngine().getPowerKw(), parsed.getEngine().getPowerKw());
-        assertEquals(vehicle.getPricing().getPriceZar(), parsed.getPricing().getPriceZar());
+        assertEquals(vehicle.getPricing().getListPriceZar(), parsed.getPricing().getListPriceZar());
         assertEquals(vehicle.getFeatures().getClimateControlType(), parsed.getFeatures().getClimateControlType());
     }
 
@@ -37,13 +37,23 @@ class VehicleSpreadsheetMapperTest {
     void fromRowMap_partialRow_setsOnlyProvidedFields() {
         Map<String, String> row = Map.of(
                 "id", VEHICLE_ID.toString(),
-                "pricing.priceZar", "399000");
+                "pricing.listPriceZar", "399000");
 
         var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
         assertEquals(VEHICLE_ID, parsed.getId());
-        assertEquals(new BigDecimal("399000"), parsed.getPricing().getPriceZar());
+        assertEquals(new BigDecimal("399000"), parsed.getPricing().getListPriceZar());
         assertNull(parsed.getMake());
         assertNull(parsed.getStatus());
+    }
+
+    @Test
+    void fromRowMap_legacyPriceHeader_mapsToListPrice() {
+        Map<String, String> row = Map.of(
+                "id", VEHICLE_ID.toString(),
+                "pricing.priceZar", "399000");
+
+        var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
+        assertEquals(new BigDecimal("399000"), parsed.getPricing().getListPriceZar());
     }
 
     @Test
@@ -54,8 +64,8 @@ class VehicleSpreadsheetMapperTest {
     @Test
     void headers_placePricingAfterDerivative() {
         List<String> headers = VehicleSpreadsheetSchema.headers();
-        assertEquals(List.of("id", "make", "model", "derivative", "pricing.priceZar", "pricing.priceDate"),
-                headers.subList(0, 6));
+        assertEquals(List.of("id", "make", "model", "derivative", "pricing.listPriceZar", "pricing.dealerOfferZar", "pricing.priceDate"),
+                headers.subList(0, 7));
     }
 
     @Test

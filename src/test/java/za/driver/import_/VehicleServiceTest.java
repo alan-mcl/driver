@@ -98,7 +98,7 @@ class VehicleServiceTest {
 
         Vehicle saved = vehicleService.importAndSave(result, profile);
 
-        assertEquals(DataQuality.VERIFIED, saved.getDataQuality().get("pricing.priceZar"));
+        assertEquals(DataQuality.VERIFIED, saved.getDataQuality().get("pricing.listPriceZar"));
         assertEquals(DataQuality.ESTIMATED, saved.getDataQuality().get("engine.powerKw"));
     }
 
@@ -121,7 +121,7 @@ class VehicleServiceTest {
 
         assertEquals(saved.getId(), updated.getId());
         assertEquals(VehicleStatus.SHORTLISTED, updated.getStatus());
-        assertEquals(350000, updated.getPricing().getPriceZar().intValue());
+        assertEquals(350000, updated.getPricing().getListPriceZar().intValue());
         assertEquals(110.0, updated.getEngine().getPowerKw());
     }
 

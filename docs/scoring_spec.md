@@ -4,7 +4,7 @@ Detailed reference for how Driver calculates vehicle scores. This document mirro
 
 **Related documents:**
 
-- [data_dictionary.md](data_dictionary.md) — canonical field definitions (dot-paths such as `safety.ncapStars`, `pricing.priceZar`)
+- [data_dictionary.md](data_dictionary.md) — canonical field definitions (dot-paths such as `safety.ncapStars`, `pricing.listPriceZar`)
 - [design_spec.md](design_spec.md) — product goals and metric overview
 
 **Source of truth in code:**
@@ -178,7 +178,7 @@ Sub-metric weights sum to **100**.
 
 Each sub-score is included only when its source data is present. Missing sub-scores are excluded and weights renormalize.
 
-**Not scored:** `pricing.priceZar`, `ownership.serviceIntervalKm`, `ownership.localProduction` (factual; informs manual `partsSupportScore` assignment).
+**Not scored:** `pricing.listPriceZar`, `pricing.dealerOfferZar`, `ownership.serviceIntervalKm`, `ownership.localProduction` (factual; informs manual `partsSupportScore` assignment).
 
 ### Coverage score (warranty, service plan, maintenance plan)
 
@@ -505,12 +505,14 @@ Additional profiles are stored as JSON in `data/profiles/{uuid}.json`.
 Computed in `ScoringService` after the overall score:
 
 ```text
-scorePer100k = overallScore / pricing.priceZar × 100_000
+scorePer100k = overallScore / effectivePrice × 100_000
 ```
+
+Effective price is `pricing.dealerOfferZar` when set and > 0, otherwise `pricing.listPriceZar`.
 
 Rules:
 
-- Returns `null` when `overallScore` or `pricing.priceZar` is missing, or when price ≤ 0.
+- Returns `null` when `overallScore` or effective price is missing, or when effective price ≤ 0.
 - Not clamped — higher values indicate better score relative to price.
 - Display label in the UI: **Score/R100k**.
 
@@ -543,7 +545,7 @@ Reference vehicle: `ScoringTestFixtures.fullVehicle()` — 2024 Toyota Corolla 1
 | `ownership.servicePlanKm` | 100000 |
 | `ownership.partsSupportScore` | 90 |
 | `wheels.tyreSize` | 195/60 R16 |
-| `pricing.priceZar` | 350000 |
+| `pricing.listPriceZar` | 350000 |
 | `dimensions.seats` | 5 |
 | `dimensions.wheelbaseMm` | 2700 |
 | `dimensions.turningCircleM` | 10.8 |

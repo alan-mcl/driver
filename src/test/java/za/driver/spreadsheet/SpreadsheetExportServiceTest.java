@@ -32,10 +32,11 @@ class SpreadsheetExportServiceTest {
     void export_placesPricingColumnsAfterDerivative() throws IOException {
         List<String> headers = VehicleSpreadsheetSchema.headers();
         assertEquals("derivative", headers.get(3));
-        assertEquals("pricing.priceZar", headers.get(4));
-        assertEquals("pricing.priceDate", headers.get(5));
-        assertEquals("modelYear", headers.get(6));
-        assertTrue(headers.indexOf("pricing.priceZar") < headers.indexOf("engine.powerKw"));
+        assertEquals("pricing.listPriceZar", headers.get(4));
+        assertEquals("pricing.dealerOfferZar", headers.get(5));
+        assertEquals("pricing.priceDate", headers.get(6));
+        assertEquals("modelYear", headers.get(7));
+        assertTrue(headers.indexOf("pricing.listPriceZar") < headers.indexOf("engine.powerKw"));
     }
 
     @Test

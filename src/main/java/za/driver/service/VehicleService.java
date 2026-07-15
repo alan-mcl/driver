@@ -34,7 +34,11 @@ public class VehicleService {
     }
 
     public List<Vehicle> findAll() throws IOException {
-        return vehicleRepository.findAll();
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        for (Vehicle vehicle : vehicles) {
+            VehicleImportMerger.migrateLegacyPricingDataQuality(vehicle);
+        }
+        return vehicles;
     }
 
     public List<Vehicle> findAll(ScoringProfile profile) throws IOException {
@@ -46,7 +50,9 @@ public class VehicleService {
     }
 
     public Optional<Vehicle> findById(UUID id) throws IOException {
-        return vehicleRepository.findById(id);
+        Optional<Vehicle> vehicle = vehicleRepository.findById(id);
+        vehicle.ifPresent(VehicleImportMerger::migrateLegacyPricingDataQuality);
+        return vehicle;
     }
 
     public Optional<Vehicle> findById(UUID id, ScoringProfile profile) throws IOException {
@@ -73,6 +79,7 @@ public class VehicleService {
 
     public Vehicle save(Vehicle vehicle, ScoringProfile profile, ScoringOverrides overrides) throws IOException {
         ManualScoreOverrideUtil.applyOverrides(vehicle, overrides);
+        VehicleImportMerger.migrateLegacyPricingDataQuality(vehicle);
         vehicle.setDerivedMetrics(null);
         enrichSource(vehicle);
         ScoringOverrides effectiveOverrides = ScoringOverrides.fromVehicle(vehicle);
@@ -192,6 +199,7 @@ public class VehicleService {
             vehicle.setDataQuality(dataQuality);
         }
 
+        VehicleImportMerger.migrateLegacyPricingDataQuality(vehicle);
         enrichSource(vehicle);
         vehicle.getSource().setImportedDate(LocalDateTime.now());
         ManualScoreOverrideUtil.applyOverrides(vehicle, overrides);

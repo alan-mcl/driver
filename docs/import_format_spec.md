@@ -45,7 +45,7 @@ Use **either** a single vehicle or a batch of vehicles.
     { "id": "...", "make": "Toyota", "model": "Corolla", "status": "CANDIDATE" },
     {
       "vehicle": { "id": "...", "make": "Honda", "model": "Civic", "status": "CANDIDATE" },
-      "dataQuality": { "pricing.priceZar": "VERIFIED" }
+      "dataQuality": { "pricing.listPriceZar": "VERIFIED" }
     }
   ]
 }
@@ -399,17 +399,21 @@ South African Rand pricing.
 
 ```json
 "pricing": {
-  "priceZar": 350000,
+  "listPriceZar": 350000,
+  "dealerOfferZar": 335000,
   "priceDate": "2026-06-17"
 }
 ```
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `priceZar` | number | Integer ZAR amount, no cents required |
+| `listPriceZar` | number | Integer ZAR list/asking price, no cents required |
+| `dealerOfferZar` | number | Optional quoted or negotiated dealer price in ZAR |
 | `priceDate` | string | ISO date when price was observed |
 
-**LLM guidance:** Strip currency symbols and thousands separators. Use the list/asking price from the source, not monthly payment figures.
+**Legacy import:** `priceZar` is accepted on read and mapped to `listPriceZar`. New exports use `listPriceZar` only.
+
+**LLM guidance:** Strip currency symbols and thousands separators. Use the published list/asking price for `listPriceZar`, not monthly payment figures. Use `dealerOfferZar` only when a specific dealer quote or negotiated price is known.
 
 ---
 
@@ -442,7 +446,8 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
 
 ```json
 "dataQuality": {
-  "pricing.priceZar": "VERIFIED",
+  "pricing.listPriceZar": "VERIFIED",
+  "pricing.dealerOfferZar": "VERIFIED",
   "engine.powerKw": "ESTIMATED",
   "safety.blindSpotMonitoring": "MISSING"
 }
@@ -603,7 +608,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
       "maintenancePlanKm": 90000
     },
     "pricing": {
-      "priceZar": 389900,
+      "listPriceZar": 389900,
       "priceDate": "2026-06-17"
     },
     "source": {
@@ -615,7 +620,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
   "dataQuality": {
     "engine.powerKw": "VERIFIED",
     "safety.blindSpotMonitoring": "MISSING",
-    "pricing.priceZar": "VERIFIED"
+    "pricing.listPriceZar": "VERIFIED"
   }
 }
 ```
@@ -632,7 +637,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
       "model": "Corolla",
       "derivative": "1.8 XS",
       "status": "CANDIDATE",
-      "pricing": { "priceZar": 389900, "priceDate": "2026-06-17" }
+      "pricing": { "listPriceZar": 389900, "priceDate": "2026-06-17" }
     },
     {
       "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -640,7 +645,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
       "model": "Civic",
       "derivative": "1.5T Sport",
       "status": "CANDIDATE",
-      "pricing": { "priceZar": 429900, "priceDate": "2026-06-17" }
+      "pricing": { "listPriceZar": 429900, "priceDate": "2026-06-17" }
     }
   ]
 }

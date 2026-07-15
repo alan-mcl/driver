@@ -180,13 +180,13 @@ public class PriceDiscoveryDialog extends JDialog {
             if (vehicle == null) {
                 continue;
             }
-            if (vehicle.getPricing() == null || vehicle.getPricing().getPriceZar() == null) {
+            if (vehicle.getPricing() == null || vehicle.getPricing().getListPriceZar() == null) {
                 continue;
             }
             if (vehicle.getDerivedMetrics() == null || vehicle.getDerivedMetrics().getOverallScore() == null) {
                 continue;
             }
-            if (vehicle.getPricing().getPriceZar().doubleValue() <= 0.0) {
+            if (vehicle.getPricing().getListPriceZar().doubleValue() <= 0.0) {
                 continue;
             }
             candidates.add(vehicle);

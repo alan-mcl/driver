@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import za.driver.model.DerivedMetrics;
 import za.driver.model.Metric;
+import za.driver.model.Pricing;
 import za.driver.model.ScoringProfile;
 import za.driver.model.ScoringWeight;
 import za.driver.model.Vehicle;
@@ -169,6 +170,19 @@ class ScoringServiceTest {
 
         assertNull(metrics.getOverallScore());
         assertNull(metrics.getScorePer100k());
+    }
+
+    @Test
+    void calculate_dealerOffer_usesEffectivePriceForScorePer100k() {
+        Pricing pricing = fullVehicle.getPricing();
+        pricing.setListPriceZar(new java.math.BigDecimal("350000"));
+        pricing.setDealerOfferZar(new java.math.BigDecimal("320000"));
+        fullVehicle.setPricing(pricing);
+
+        DerivedMetrics metrics = scoringService.calculate(fullVehicle, familyFocusedProfile);
+
+        assertNotNull(metrics.getScorePer100k());
+        assertEquals(metrics.getOverallScore() / 320_000.0 * 100_000.0, metrics.getScorePer100k(), 0.01);
     }
 
     @Test

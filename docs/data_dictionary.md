@@ -256,7 +256,8 @@ Represents a specific vehicle derivative.
 
 | Field | Type |
 |---------|---------|
-| priceZar | Decimal |
+| listPriceZar | Decimal |
+| dealerOfferZar | Decimal (optional) |
 | priceDate | Date |
 
 ---

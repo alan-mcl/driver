@@ -34,7 +34,7 @@ import za.driver.service.VehicleFilterCriteria;
 
 public class VehicleListPanel extends JPanel {
 
-    private static final int FIXED_PREFIX_COLUMNS = 5;
+    private static final int FIXED_PREFIX_COLUMNS = 6;
     private static final int TOP_METRIC_COUNT = 5;
     private static final int SCORE_PER_100K_COLUMN_OFFSET = 0;
     private static final int DATA_COMPLETENESS_COLUMN_OFFSET = 1;
@@ -278,7 +278,7 @@ public class VehicleListPanel extends JPanel {
 
         @Override
         public Class<?> getColumnClass(int columnIndex) {
-            if (columnIndex == 3) {
+            if (columnIndex == 3 || columnIndex == 4) {
                 return BigDecimal.class;
             }
             if (columnIndex == 0 || columnIndex == 1 || columnIndex == 2) {
@@ -303,9 +303,12 @@ public class VehicleListPanel extends JPanel {
                 return formatDerivative(vehicle.getDerivative());
             }
             if (columnIndex == 3) {
-                return priceValue(vehicle.getPricing());
+                return listPriceValue(vehicle.getPricing());
             }
             if (columnIndex == 4) {
+                return dealerOfferValue(vehicle.getPricing());
+            }
+            if (columnIndex == 5) {
                 return overallScoreValue(vehicle.getDerivedMetrics());
             }
             int metricEnd = FIXED_PREFIX_COLUMNS + topMetrics.size();
@@ -330,7 +333,8 @@ public class VehicleListPanel extends JPanel {
             columnNames.add("Make");
             columnNames.add("Model");
             columnNames.add("Derivative");
-            columnNames.add("Price");
+            columnNames.add("List price");
+            columnNames.add("Dealer offer");
             columnNames.add("Overall Score");
             for (Metric metric : topMetrics) {
                 columnNames.add(MetricLabels.displayName(metric, activeProfile));
@@ -344,11 +348,18 @@ public class VehicleListPanel extends JPanel {
             return derivative == null || derivative.isBlank() ? "" : derivative;
         }
 
-        private static BigDecimal priceValue(Pricing pricing) {
-            if (pricing == null || pricing.getPriceZar() == null) {
+        private static BigDecimal listPriceValue(Pricing pricing) {
+            if (pricing == null || pricing.getListPriceZar() == null) {
                 return null;
             }
-            return pricing.getPriceZar();
+            return pricing.getListPriceZar();
+        }
+
+        private static BigDecimal dealerOfferValue(Pricing pricing) {
+            if (pricing == null || pricing.getDealerOfferZar() == null) {
+                return null;
+            }
+            return pricing.getDealerOfferZar();
         }
 
         private static Double overallScoreValue(DerivedMetrics metrics) {

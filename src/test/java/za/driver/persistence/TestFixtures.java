@@ -153,7 +153,7 @@ final class TestFixtures {
         vehicle.setOwnership(ownership);
 
         Pricing pricing = new Pricing();
-        pricing.setPriceZar(new BigDecimal("350000"));
+        pricing.setListPriceZar(new BigDecimal("350000"));
         pricing.setPriceDate(LocalDate.of(2026, 6, 17));
         vehicle.setPricing(pricing);
 

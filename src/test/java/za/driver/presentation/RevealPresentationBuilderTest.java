@@ -103,7 +103,7 @@ class RevealPresentationBuilderTest {
         Vehicle vehicle = ScoringTestFixtures.fullVehicle();
         vehicle.setDerivative(derivative);
         Pricing pricing = new Pricing();
-        pricing.setPriceZar(price);
+        pricing.setListPriceZar(price);
         vehicle.setPricing(pricing);
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, ScoringTestFixtures.familyFocusedProfile()));
         return vehicle;

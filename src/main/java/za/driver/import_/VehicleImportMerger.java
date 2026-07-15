@@ -134,6 +134,19 @@ public final class VehicleImportMerger {
         return merged;
     }
 
+    public static void migrateLegacyPricingDataQuality(Vehicle vehicle) {
+        if (vehicle == null || vehicle.getDataQuality() == null) {
+            return;
+        }
+        Map<String, DataQuality> dataQuality = vehicle.getDataQuality();
+        if (!dataQuality.containsKey("pricing.priceZar") || dataQuality.containsKey("pricing.listPriceZar")) {
+            return;
+        }
+        Map<String, DataQuality> migrated = new HashMap<>(dataQuality);
+        migrated.put("pricing.listPriceZar", migrated.remove("pricing.priceZar"));
+        vehicle.setDataQuality(migrated);
+    }
+
     private static void mergeEngine(Engine target, Engine source) {
         if (source.getFuelType() != null) {
             target.setFuelType(source.getFuelType());
@@ -357,8 +370,11 @@ public final class VehicleImportMerger {
     }
 
     private static void mergePricing(Pricing target, Pricing source) {
-        if (source.getPriceZar() != null) {
-            target.setPriceZar(source.getPriceZar());
+        if (source.getListPriceZar() != null) {
+            target.setListPriceZar(source.getListPriceZar());
+        }
+        if (source.getDealerOfferZar() != null) {
+            target.setDealerOfferZar(source.getDealerOfferZar());
         }
         if (source.getPriceDate() != null) {
             target.setPriceDate(source.getPriceDate());

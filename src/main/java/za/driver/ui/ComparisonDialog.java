@@ -216,7 +216,8 @@ public class ComparisonDialog extends JDialog {
     private static List<ComparisonRow> buildRows(ScoringProfile profile) {
         List<ComparisonRow> rows = new ArrayList<>();
 
-        rows.add(field("List price", ComparisonDialog::formatPrice));
+        rows.add(field("List price", ComparisonDialog::formatListPrice));
+        rows.add(field("Dealer offer", ComparisonDialog::formatDealerOffer));
 
         addSection(rows, "General");
         rows.add(field("Make", Vehicle::getMake));
@@ -412,12 +413,20 @@ public class ComparisonDialog extends JDialog {
         return metrics != null ? metrics : new DerivedMetrics();
     }
 
-    private static String formatPrice(Vehicle vehicle) {
+    private static String formatListPrice(Vehicle vehicle) {
         Pricing pricing = vehicle.getPricing();
-        if (pricing == null || pricing.getPriceZar() == null) {
+        if (pricing == null || pricing.getListPriceZar() == null) {
             return "-";
         }
-        return "R " + CURRENCY_FORMAT.format(pricing.getPriceZar());
+        return "R " + CURRENCY_FORMAT.format(pricing.getListPriceZar());
+    }
+
+    private static String formatDealerOffer(Vehicle vehicle) {
+        Pricing pricing = vehicle.getPricing();
+        if (pricing == null || pricing.getDealerOfferZar() == null) {
+            return "-";
+        }
+        return "R " + CURRENCY_FORMAT.format(pricing.getDealerOfferZar());
     }
 
     private static String formatString(String value) {

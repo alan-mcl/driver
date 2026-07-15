@@ -130,7 +130,7 @@ public final class RevealPresentationBuilder {
             html.append("              <li><span class=\"trim\">")
                     .append(HtmlEscaper.escape(trim.label()))
                     .append("</span><span class=\"price\">")
-                    .append(HtmlEscaper.escape(formatPrice(trim.priceZar())))
+                    .append(HtmlEscaper.escape(formatPrice(trim.listPriceZar())))
                     .append("</span></li>\n");
         }
         if (group.hiddenTrimCount() > 0) {

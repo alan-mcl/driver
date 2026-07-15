@@ -120,10 +120,10 @@ public class FilterBar extends JPanel {
         int fleetMaxZar = DEFAULT_MAX_PRICE_ZAR;
         for (Vehicle vehicle : vehicles) {
             Pricing pricing = vehicle.getPricing();
-            if (pricing == null || pricing.getPriceZar() == null) {
+            if (pricing == null || pricing.effectivePriceZar() == null) {
                 continue;
             }
-            int priceZar = pricing.getPriceZar().intValue();
+            int priceZar = pricing.effectivePriceZar().intValue();
             if (priceZar > fleetMaxZar) {
                 fleetMaxZar = priceZar;
             }

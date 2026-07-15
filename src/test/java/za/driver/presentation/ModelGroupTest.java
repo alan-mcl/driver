@@ -42,9 +42,9 @@ class ModelGroupTest {
         assertEquals("toyota-corolla.jpg", group.imageFilename());
         assertEquals(2, group.trims().size());
         assertEquals("2.0 XR", group.trims().get(0).label());
-        assertEquals(new BigDecimal("420000"), group.trims().get(0).priceZar());
+        assertEquals(new BigDecimal("420000"), group.trims().get(0).listPriceZar());
         assertEquals("1.8 XS", group.trims().get(1).label());
-        assertEquals(new BigDecimal("350000"), group.trims().get(1).priceZar());
+        assertEquals(new BigDecimal("350000"), group.trims().get(1).listPriceZar());
         assertTrue(group.averagedOverallScore() != null && group.averagedOverallScore() > 0);
         assertEquals(6, group.trims().getFirst().ratings().size());
         assertEquals("Overall", group.trims().getFirst().ratings().getFirst().label());
@@ -129,7 +129,7 @@ class ModelGroupTest {
         assertEquals(3, group.trims().size());
         assertEquals(2, group.hiddenTrimCount());
         assertEquals("Trim 5", group.trims().getFirst().label());
-        assertEquals(new BigDecimal("350000"), group.trims().getFirst().priceZar());
+        assertEquals(new BigDecimal("350000"), group.trims().getFirst().listPriceZar());
         assertEquals("Trim 3", group.trims().get(2).label());
     }
 
@@ -147,7 +147,7 @@ class ModelGroupTest {
         vehicle.setModelYear(year);
         vehicle.setStatus(VehicleStatus.SHORTLISTED);
         Pricing pricing = new Pricing();
-        pricing.setPriceZar(price);
+        pricing.setListPriceZar(price);
         vehicle.setPricing(pricing);
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, ScoringTestFixtures.familyFocusedProfile()));
         return vehicle;

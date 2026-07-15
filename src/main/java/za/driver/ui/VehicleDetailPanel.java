@@ -156,7 +156,8 @@ public class VehicleDetailPanel extends JPanel {
     private final JTextField partsSupportScoreField = new JTextField(8);
     private final JCheckBox localProductionCheck = new JCheckBox("Locally produced");
 
-    private final JTextField priceZarField = new JTextField(12);
+    private final JTextField listPriceZarField = new JTextField(12);
+    private final JTextField dealerOfferZarField = new JTextField(12);
     private final JTextField priceDateField = new JTextField(12);
 
     private final JComboBox<SourceType> sourceTypeCombo = enumCombo(SourceType.values());
@@ -353,7 +354,8 @@ public class VehicleDetailPanel extends JPanel {
 
         Pricing pricing = vehicle.getPricing();
         if (pricing != null) {
-            priceZarField.setText(pricing.getPriceZar() != null ? pricing.getPriceZar().toPlainString() : "");
+            listPriceZarField.setText(pricing.getListPriceZar() != null ? pricing.getListPriceZar().toPlainString() : "");
+            dealerOfferZarField.setText(pricing.getDealerOfferZar() != null ? pricing.getDealerOfferZar().toPlainString() : "");
             priceDateField.setText(pricing.getPriceDate() != null ? pricing.getPriceDate().toString() : "");
         }
 
@@ -542,7 +544,8 @@ public class VehicleDetailPanel extends JPanel {
 
         if (hasPricingData()) {
             Pricing pricing = new Pricing();
-            pricing.setPriceZar(parseBigDecimal(priceZarField.getText()));
+            pricing.setListPriceZar(parseBigDecimal(listPriceZarField.getText()));
+            pricing.setDealerOfferZar(parseBigDecimal(dealerOfferZarField.getText()));
             pricing.setPriceDate(parseDate(priceDateField.getText()));
             vehicle.setPricing(pricing);
         }
@@ -789,8 +792,9 @@ public class VehicleDetailPanel extends JPanel {
 
     private JPanel buildPricingPanel() {
         JPanel panel = formPanel();
-        addRow(panel, 0, "Price (ZAR)", priceZarField);
-        addRow(panel, 1, "Price date (YYYY-MM-DD)", priceDateField);
+        addRow(panel, 0, "List price (ZAR)", listPriceZarField);
+        addRow(panel, 1, "Dealer offer (ZAR)", dealerOfferZarField);
+        addRow(panel, 2, "Price date (YYYY-MM-DD)", priceDateField);
         return panel;
     }
 
@@ -857,7 +861,8 @@ public class VehicleDetailPanel extends JPanel {
         clearSafetyFields();
         clearFeaturesFields();
         clearOwnershipFields();
-        priceZarField.setText("");
+        listPriceZarField.setText("");
+        dealerOfferZarField.setText("");
         priceDateField.setText("");
         sourceTypeCombo.setSelectedIndex(0);
         sourceNameField.setText("");
@@ -1055,7 +1060,9 @@ public class VehicleDetailPanel extends JPanel {
     }
 
     private boolean hasPricingData() {
-        return !priceZarField.getText().isBlank() || !priceDateField.getText().isBlank();
+        return !listPriceZarField.getText().isBlank()
+                || !dealerOfferZarField.getText().isBlank()
+                || !priceDateField.getText().isBlank();
     }
 
     private boolean hasSourceData() {

@@ -28,7 +28,7 @@ class VehicleFilterTest {
     void setUp() {
         vehicle = ScoringTestFixtures.fullVehicle();
         Pricing pricing = new Pricing();
-        pricing.setPriceZar(new BigDecimal("450000"));
+        pricing.setListPriceZar(new BigDecimal("450000"));
         vehicle.setPricing(pricing);
 
         DerivedMetrics metrics = new DerivedMetrics();
@@ -58,6 +58,21 @@ class VehicleFilterTest {
         assertFalse(VehicleFilter.matches(
                 vehicle,
                 criteria(new BigDecimal("500000"), null, null, null),
+                GARAGE));
+    }
+
+    @Test
+    void matches_dealerOffer_usesEffectivePriceForFilter() {
+        vehicle.getPricing().setListPriceZar(new BigDecimal("450000"));
+        vehicle.getPricing().setDealerOfferZar(new BigDecimal("380000"));
+
+        assertTrue(VehicleFilter.matches(
+                vehicle,
+                criteria(new BigDecimal("370000"), new BigDecimal("400000"), null, null),
+                GARAGE));
+        assertFalse(VehicleFilter.matches(
+                vehicle,
+                criteria(null, new BigDecimal("370000"), null, null),
                 GARAGE));
     }
 

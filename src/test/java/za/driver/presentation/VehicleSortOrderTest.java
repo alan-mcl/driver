@@ -45,7 +45,7 @@ class VehicleSortOrderTest {
         vehicle.setDerivative(derivative);
         if (price != null) {
             Pricing pricing = new Pricing();
-            pricing.setPriceZar(new BigDecimal(price));
+            pricing.setListPriceZar(new BigDecimal(price));
             vehicle.setPricing(pricing);
         }
         return vehicle;
