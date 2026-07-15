@@ -49,8 +49,42 @@ class VehicleRepositoryTest {
 
         Vehicle loaded = repository.findAll().get(0);
 
-        assertEquals(new BigDecimal("350000"), loaded.getPricing().getListPriceZar());
-        assertNull(loaded.getPricing().getDealerOfferZar());
+        assertEquals(new BigDecimal("350000"), loaded.getPricing().getListPrice());
+        assertNull(loaded.getPricing().getDealerOffer());
+        assertEquals(java.time.LocalDate.of(2026, 6, 17), loaded.getPricing().getListPriceDate());
+    }
+
+    @Test
+    void saveAndLoad_writesNeutralPriceFieldNames() throws IOException {
+        Vehicle vehicle = TestFixtures.fullVehicle();
+        repository.save(vehicle);
+
+        String json = Files.readString(tempDir.resolve("vehicles").resolve(vehicle.getId() + ".json"));
+
+        assertTrue(json.contains("\"listPrice\""));
+        assertFalse(json.contains("listPriceZar"));
+    }
+
+    @Test
+    void load_legacyListPriceZarJson_deserializesAsListPrice() throws IOException {
+        String json = """
+                {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "make": "Toyota",
+                  "model": "Corolla",
+                  "pricing": {
+                    "listPriceZar": 350000,
+                    "dealerOfferZar": 320000
+                  }
+                }
+                """;
+        Files.createDirectories(tempDir.resolve("vehicles"));
+        Files.writeString(tempDir.resolve("vehicles").resolve("550e8400-e29b-41d4-a716-446655440000.json"), json);
+
+        Vehicle loaded = repository.findAll().get(0);
+
+        assertEquals(new BigDecimal("350000"), loaded.getPricing().getListPrice());
+        assertEquals(new BigDecimal("320000"), loaded.getPricing().getDealerOffer());
     }
 
     @Test
@@ -227,8 +261,8 @@ class VehicleRepositoryTest {
         assertEquals(expected.getOwnership().getPartsSupportScore(), actual.getOwnership().getPartsSupportScore());
         assertEquals(expected.getOwnership().getLocalProduction(), actual.getOwnership().getLocalProduction());
 
-        assertEquals(0, expected.getPricing().getListPriceZar().compareTo(actual.getPricing().getListPriceZar()));
-        assertEquals(expected.getPricing().getPriceDate(), actual.getPricing().getPriceDate());
+        assertEquals(0, expected.getPricing().getListPrice().compareTo(actual.getPricing().getListPrice()));
+        assertEquals(expected.getPricing().getListPriceDate(), actual.getPricing().getListPriceDate());
 
         assertEquals(expected.getSource().getSourceType(), actual.getSource().getSourceType());
         assertEquals(expected.getSource().getSourceName(), actual.getSource().getSourceName());

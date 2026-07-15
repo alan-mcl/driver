@@ -134,17 +134,32 @@ public final class VehicleImportMerger {
         return merged;
     }
 
-    public static void migrateLegacyPricingDataQuality(Vehicle vehicle) {
+    public static void migrateLegacyPricing(Vehicle vehicle) {
         if (vehicle == null || vehicle.getDataQuality() == null) {
             return;
         }
         Map<String, DataQuality> dataQuality = vehicle.getDataQuality();
-        if (!dataQuality.containsKey("pricing.priceZar") || dataQuality.containsKey("pricing.listPriceZar")) {
-            return;
-        }
+        boolean changed = false;
         Map<String, DataQuality> migrated = new HashMap<>(dataQuality);
-        migrated.put("pricing.listPriceZar", migrated.remove("pricing.priceZar"));
-        vehicle.setDataQuality(migrated);
+        if (migrated.containsKey("pricing.priceZar") && !migrated.containsKey("pricing.listPrice")) {
+            migrated.put("pricing.listPrice", migrated.remove("pricing.priceZar"));
+            changed = true;
+        }
+        if (migrated.containsKey("pricing.listPriceZar") && !migrated.containsKey("pricing.listPrice")) {
+            migrated.put("pricing.listPrice", migrated.remove("pricing.listPriceZar"));
+            changed = true;
+        }
+        if (migrated.containsKey("pricing.dealerOfferZar") && !migrated.containsKey("pricing.dealerOffer")) {
+            migrated.put("pricing.dealerOffer", migrated.remove("pricing.dealerOfferZar"));
+            changed = true;
+        }
+        if (migrated.containsKey("pricing.priceDate") && !migrated.containsKey("pricing.listPriceDate")) {
+            migrated.put("pricing.listPriceDate", migrated.remove("pricing.priceDate"));
+            changed = true;
+        }
+        if (changed) {
+            vehicle.setDataQuality(migrated);
+        }
     }
 
     private static void mergeEngine(Engine target, Engine source) {
@@ -370,14 +385,17 @@ public final class VehicleImportMerger {
     }
 
     private static void mergePricing(Pricing target, Pricing source) {
-        if (source.getListPriceZar() != null) {
-            target.setListPriceZar(source.getListPriceZar());
+        if (source.getListPrice() != null) {
+            target.setListPrice(source.getListPrice());
         }
-        if (source.getDealerOfferZar() != null) {
-            target.setDealerOfferZar(source.getDealerOfferZar());
+        if (source.getDealerOffer() != null) {
+            target.setDealerOffer(source.getDealerOffer());
         }
-        if (source.getPriceDate() != null) {
-            target.setPriceDate(source.getPriceDate());
+        if (source.getListPriceDate() != null) {
+            target.setListPriceDate(source.getListPriceDate());
+        }
+        if (source.getDealerOfferDate() != null) {
+            target.setDealerOfferDate(source.getDealerOfferDate());
         }
     }
 

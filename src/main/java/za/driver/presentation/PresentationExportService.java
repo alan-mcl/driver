@@ -17,10 +17,31 @@ public final class PresentationExportService {
     private static final String RESOURCE_ROOT = "presentation/";
 
     public void export(Path outputDir, List<Vehicle> vehicles, ScoringProfile profile) throws IOException {
-        export(outputDir, vehicles, profile, LocalDateTime.now());
+        export(outputDir, vehicles, profile, LocalDateTime.now(), CurrencyFormatter.defaults());
     }
 
-    public void export(Path outputDir, List<Vehicle> vehicles, ScoringProfile profile, LocalDateTime exportedAt)
+    public void export(
+            Path outputDir,
+            List<Vehicle> vehicles,
+            ScoringProfile profile,
+            CurrencyFormatter currencyFormatter) throws IOException {
+        export(outputDir, vehicles, profile, LocalDateTime.now(), currencyFormatter);
+    }
+
+    public void export(
+            Path outputDir,
+            List<Vehicle> vehicles,
+            ScoringProfile profile,
+            LocalDateTime exportedAt) throws IOException {
+        export(outputDir, vehicles, profile, exportedAt, CurrencyFormatter.defaults());
+    }
+
+    public void export(
+            Path outputDir,
+            List<Vehicle> vehicles,
+            ScoringProfile profile,
+            LocalDateTime exportedAt,
+            CurrencyFormatter currencyFormatter)
             throws IOException {
         if (vehicles == null || vehicles.isEmpty()) {
             throw new IllegalArgumentException("At least one vehicle is required.");
@@ -33,7 +54,7 @@ public final class PresentationExportService {
         copyResource(RESOURCE_ROOT + "assets/logo.png", outputDir.resolve("assets/logo.png"));
 
         List<BodyTypeSection> sections = ModelGroup.groupByBodyType(vehicles, profile);
-        String html = RevealPresentationBuilder.build(sections, profile, exportedAt);
+        String html = RevealPresentationBuilder.build(sections, profile, exportedAt, currencyFormatter);
         Files.writeString(outputDir.resolve("index.html"), html);
         Files.writeString(outputDir.resolve("IMAGES.md"), buildImageManifest(ModelGroup.flattenSections(sections)));
     }

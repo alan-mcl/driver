@@ -24,7 +24,7 @@ public final class PriceDiscoveryCalculator {
         return subjectScore * benchmarkPrice / benchmarkScore;
     }
 
-    public static double discountZar(double listPrice, double crossoverPrice) {
+    public static double discountAmount(double listPrice, double crossoverPrice) {
         return listPrice - crossoverPrice;
     }
 
@@ -32,7 +32,7 @@ public final class PriceDiscoveryCalculator {
         if (listPrice <= 0.0) {
             return 0.0;
         }
-        return discountZar(listPrice, crossoverPrice) / listPrice * 100.0;
+        return discountAmount(listPrice, crossoverPrice) / listPrice * 100.0;
     }
 
     public static boolean beatsAtList(double crossoverPrice, double listPrice) {

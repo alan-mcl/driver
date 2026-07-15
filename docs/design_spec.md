@@ -391,10 +391,10 @@ A summary table below the chart lists each non-benchmark vehicle's list price, l
 Crossover formula:
 
 ```text
-targetPrice = subject.overallScore × benchmark.listPriceZar / benchmark.overallScore
+targetPrice = subject.overallScore × benchmark.listPrice / benchmark.overallScore
 ```
 
-The main vehicle table **Score/R100k** column uses effective price (dealer offer when set, otherwise list price). Price Discovery chart and summary table use list price only.
+The main vehicle table **Score/R100k** column uses effective price (dealer offer when set, otherwise list price). The max-price filter uses the **lowest** of list price and dealer offer when both are set. Price Discovery chart and summary table use list price only; the summary table also shows dealer offer when present.
 
 ---
 

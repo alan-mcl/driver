@@ -82,7 +82,7 @@ class ImportServiceTest {
                     "status": "CANDIDATE"
                   },
                   "dataQuality": {
-                    "pricing.priceZar": "VERIFIED"
+                    "pricing.price": "VERIFIED"
                   }
                 }
                 """;
@@ -90,7 +90,7 @@ class ImportServiceTest {
         ImportResult result = importService.preview(json);
 
         assertTrue(result.isValid());
-        assertEquals(DataQuality.VERIFIED, result.getDataQuality().get("pricing.priceZar"));
+        assertEquals(DataQuality.VERIFIED, result.getDataQuality().get("pricing.price"));
     }
 
     @Test
@@ -186,7 +186,7 @@ class ImportServiceTest {
                         "status": "CANDIDATE"
                       },
                       "dataQuality": {
-                        "pricing.priceZar": "VERIFIED"
+                        "pricing.price": "VERIFIED"
                       }
                     }
                   ]

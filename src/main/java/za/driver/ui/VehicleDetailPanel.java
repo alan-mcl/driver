@@ -55,6 +55,7 @@ import za.driver.model.Vehicle;
 import za.driver.model.VehicleStatus;
 import za.driver.model.Wheels;
 import za.driver.persistence.JsonStore;
+import za.driver.presentation.CurrencyFormatter;
 import za.driver.presentation.MetricLabels;
 import za.driver.scoring.MetricScores;
 import za.driver.scoring.ReliabilityConfidenceUtil;
@@ -68,6 +69,10 @@ public class VehicleDetailPanel extends JPanel {
     private final ScoringDataReportService scoringDataReportService;
     private final BrandReliabilityConfigService brandReliabilityConfigService;
     private ScoringProfile activeProfile;
+    private CurrencyFormatter currencyFormatter = CurrencyFormatter.defaults();
+    private JLabel listPriceLabel;
+    private JLabel dealerOfferLabel;
+    private JLabel scorePer100kLabel;
     private List<Metric> topMetrics = List.of();
 
     private final StarRatingPanel overallStarPanel = new StarRatingPanel("Overall");
@@ -156,9 +161,10 @@ public class VehicleDetailPanel extends JPanel {
     private final JTextField partsSupportScoreField = new JTextField(8);
     private final JCheckBox localProductionCheck = new JCheckBox("Locally produced");
 
-    private final JTextField listPriceZarField = new JTextField(12);
-    private final JTextField dealerOfferZarField = new JTextField(12);
-    private final JTextField priceDateField = new JTextField(12);
+    private final JTextField listPriceField = new JTextField(12);
+    private final JTextField dealerOfferField = new JTextField(12);
+    private final JTextField listPriceDateField = new JTextField(12);
+    private final JTextField dealerOfferDateField = new JTextField(12);
 
     private final JComboBox<SourceType> sourceTypeCombo = enumCombo(SourceType.values());
     private final JTextField sourceNameField = new JTextField(20);
@@ -187,11 +193,13 @@ public class VehicleDetailPanel extends JPanel {
     public VehicleDetailPanel(
             ScoringDataReportService scoringDataReportService,
             BrandReliabilityConfigService brandReliabilityConfigService,
-            ScoringProfile activeProfile) {
+            ScoringProfile activeProfile,
+            CurrencyFormatter currencyFormatter) {
         super(new BorderLayout());
         this.scoringDataReportService = scoringDataReportService;
         this.brandReliabilityConfigService = brandReliabilityConfigService;
         this.activeProfile = activeProfile;
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT, JTabbedPane.WRAP_TAB_LAYOUT);
         tabs.addTab("General", wrapTopLeft(buildGeneralPanel()));
         tabs.addTab("Engine", wrapTopLeft(buildEnginePanel()));
@@ -210,6 +218,23 @@ public class VehicleDetailPanel extends JPanel {
         tabs.addTab("Data Report", buildDataReportPanel());
         add(tabs, BorderLayout.CENTER);
         setActiveProfile(activeProfile);
+    }
+
+    public void setCurrencyFormatter(CurrencyFormatter currencyFormatter) {
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
+        updateDisplayLabels();
+    }
+
+    private void updateDisplayLabels() {
+        if (listPriceLabel != null) {
+            listPriceLabel.setText(currencyFormatter.priceFieldLabel("List price"));
+        }
+        if (dealerOfferLabel != null) {
+            dealerOfferLabel.setText(currencyFormatter.priceFieldLabel("Dealer offer"));
+        }
+        if (scorePer100kLabel != null) {
+            scorePer100kLabel.setText(currencyFormatter.scorePer100kLabel());
+        }
     }
 
     public void setActiveProfile(ScoringProfile profile) {
@@ -354,9 +379,10 @@ public class VehicleDetailPanel extends JPanel {
 
         Pricing pricing = vehicle.getPricing();
         if (pricing != null) {
-            listPriceZarField.setText(pricing.getListPriceZar() != null ? pricing.getListPriceZar().toPlainString() : "");
-            dealerOfferZarField.setText(pricing.getDealerOfferZar() != null ? pricing.getDealerOfferZar().toPlainString() : "");
-            priceDateField.setText(pricing.getPriceDate() != null ? pricing.getPriceDate().toString() : "");
+            listPriceField.setText(pricing.getListPrice() != null ? pricing.getListPrice().toPlainString() : "");
+            dealerOfferField.setText(pricing.getDealerOffer() != null ? pricing.getDealerOffer().toPlainString() : "");
+            listPriceDateField.setText(pricing.getListPriceDate() != null ? pricing.getListPriceDate().toString() : "");
+            dealerOfferDateField.setText(pricing.getDealerOfferDate() != null ? pricing.getDealerOfferDate().toString() : "");
         }
 
         Source source = vehicle.getSource();
@@ -544,9 +570,11 @@ public class VehicleDetailPanel extends JPanel {
 
         if (hasPricingData()) {
             Pricing pricing = new Pricing();
-            pricing.setListPriceZar(parseBigDecimal(listPriceZarField.getText()));
-            pricing.setDealerOfferZar(parseBigDecimal(dealerOfferZarField.getText()));
-            pricing.setPriceDate(parseDate(priceDateField.getText()));
+            pricing.setListPrice(parseBigDecimal(listPriceField.getText()));
+            pricing.setDealerOffer(parseBigDecimal(dealerOfferField.getText()));
+            pricing.setListPriceDate(parseDate(listPriceDateField.getText()));
+            pricing.setDealerOfferDate(parseDate(dealerOfferDateField.getText()));
+            pricing.normalizeDates();
             vehicle.setPricing(pricing);
         }
 
@@ -792,9 +820,12 @@ public class VehicleDetailPanel extends JPanel {
 
     private JPanel buildPricingPanel() {
         JPanel panel = formPanel();
-        addRow(panel, 0, "List price (ZAR)", listPriceZarField);
-        addRow(panel, 1, "Dealer offer (ZAR)", dealerOfferZarField);
-        addRow(panel, 2, "Price date (YYYY-MM-DD)", priceDateField);
+        listPriceLabel = new JLabel(currencyFormatter.priceFieldLabel("List price"));
+        dealerOfferLabel = new JLabel(currencyFormatter.priceFieldLabel("Dealer offer"));
+        addRow(panel, 0, listPriceLabel, listPriceField);
+        addRow(panel, 1, dealerOfferLabel, dealerOfferField);
+        addRow(panel, 2, "List price date (YYYY-MM-DD)", listPriceDateField);
+        addRow(panel, 3, "Dealer offer date (YYYY-MM-DD)", dealerOfferDateField);
         return panel;
     }
 
@@ -821,7 +852,8 @@ public class VehicleDetailPanel extends JPanel {
         addRow(panel, 9, awesomenessScoreLabel, awesomenessScoreField);
         addRow(panel, 10, "Prestige", prestigeScoreField);
         addRow(panel, 11, "Overall", overallScoreField);
-        addRow(panel, 12, "Score/R100k", scorePer100kField);
+        scorePer100kLabel = new JLabel(currencyFormatter.scorePer100kLabel());
+        addRow(panel, 12, scorePer100kLabel, scorePer100kField);
         addRow(panel, 13, "Reliability manual estimate", reliabilityManualEstimateSpinner);
         addRow(panel, 14, "Prestige override", prestigeOverrideSpinner);
         return panel;
@@ -861,9 +893,10 @@ public class VehicleDetailPanel extends JPanel {
         clearSafetyFields();
         clearFeaturesFields();
         clearOwnershipFields();
-        listPriceZarField.setText("");
-        dealerOfferZarField.setText("");
-        priceDateField.setText("");
+        listPriceField.setText("");
+        dealerOfferField.setText("");
+        listPriceDateField.setText("");
+        dealerOfferDateField.setText("");
         sourceTypeCombo.setSelectedIndex(0);
         sourceNameField.setText("");
         sourceUrlField.setText("");
@@ -1060,9 +1093,10 @@ public class VehicleDetailPanel extends JPanel {
     }
 
     private boolean hasPricingData() {
-        return !listPriceZarField.getText().isBlank()
-                || !dealerOfferZarField.getText().isBlank()
-                || !priceDateField.getText().isBlank();
+        return !listPriceField.getText().isBlank()
+                || !dealerOfferField.getText().isBlank()
+                || !listPriceDateField.getText().isBlank()
+                || !dealerOfferDateField.getText().isBlank();
     }
 
     private boolean hasSourceData() {

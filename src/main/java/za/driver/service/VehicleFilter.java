@@ -58,10 +58,10 @@ public final class VehicleFilter {
         if (minPrice == null && maxPrice == null) {
             return true;
         }
-        if (pricing == null || pricing.effectivePriceZar() == null) {
+        if (pricing == null || pricing.filterPrice() == null) {
             return false;
         }
-        BigDecimal price = pricing.effectivePriceZar();
+        BigDecimal price = pricing.filterPrice();
         if (minPrice != null && price.compareTo(minPrice) < 0) {
             return false;
         }

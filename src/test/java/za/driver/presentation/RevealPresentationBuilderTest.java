@@ -33,7 +33,8 @@ class RevealPresentationBuilderTest {
         String html = RevealPresentationBuilder.build(
                 sections,
                 ScoringTestFixtures.familyFocusedProfile(),
-                LocalDateTime.of(2025, 6, 24, 10, 30));
+                LocalDateTime.of(2025, 6, 24, 10, 30),
+                CurrencyFormatter.defaults());
 
         assertTrue(html.contains("class=\"body-type-slide\""));
         assertTrue(html.contains("Sedans"));
@@ -71,7 +72,8 @@ class RevealPresentationBuilderTest {
         String html = RevealPresentationBuilder.build(
                 sections,
                 ScoringTestFixtures.familyFocusedProfile(),
-                LocalDateTime.of(2025, 6, 24, 10, 30));
+                LocalDateTime.of(2025, 6, 24, 10, 30),
+                CurrencyFormatter.defaults());
 
         assertTrue(html.contains("Test&lt;Make&gt; Model&quot;One&quot;"));
         assertTrue(html.contains("Great value &amp; low cost."));
@@ -93,7 +95,8 @@ class RevealPresentationBuilderTest {
         String html = RevealPresentationBuilder.build(
                 sections,
                 ScoringTestFixtures.familyFocusedProfile(),
-                LocalDateTime.of(2025, 6, 24, 10, 30));
+                LocalDateTime.of(2025, 6, 24, 10, 30),
+                CurrencyFormatter.defaults());
 
         assertTrue(html.contains("Sedans"));
         assertTrue(html.contains("SUVs"));
@@ -103,7 +106,7 @@ class RevealPresentationBuilderTest {
         Vehicle vehicle = ScoringTestFixtures.fullVehicle();
         vehicle.setDerivative(derivative);
         Pricing pricing = new Pricing();
-        pricing.setListPriceZar(price);
+        pricing.setListPrice(price);
         vehicle.setPricing(pricing);
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, ScoringTestFixtures.familyFocusedProfile()));
         return vehicle;

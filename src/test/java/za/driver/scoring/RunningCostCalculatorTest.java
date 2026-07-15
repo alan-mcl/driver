@@ -74,8 +74,8 @@ class RunningCostCalculatorTest {
         vehicle.setWheels(wheels);
 
         Pricing pricing = new Pricing();
-        pricing.setListPriceZar(new BigDecimal("420700"));
-        pricing.setPriceDate(LocalDate.of(2026, 6, 18));
+        pricing.setListPrice(new BigDecimal("420700"));
+        pricing.setListPriceDate(LocalDate.of(2026, 6, 18));
         vehicle.setPricing(pricing);
 
         return vehicle;

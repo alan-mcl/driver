@@ -14,7 +14,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +28,7 @@ import za.driver.chart.PriceDiscoveryData;
 import za.driver.chart.PriceDiscoveryPoint;
 import za.driver.chart.PriceDiscoveryVehicle;
 import za.driver.model.Vehicle;
+import za.driver.presentation.CurrencyFormatter;
 
 public class PriceDiscoveryPanel extends JPanel {
 
@@ -49,6 +49,7 @@ public class PriceDiscoveryPanel extends JPanel {
     private PriceDiscoveryData plotData = PriceDiscoveryData.empty(0);
     private List<RenderedPoint> renderedPoints = List.of();
     private Consumer<Vehicle> pointSelectedListener;
+    private CurrencyFormatter currencyFormatter = CurrencyFormatter.defaults();
 
     public PriceDiscoveryPanel() {
         setPreferredSize(new Dimension(720, 380));
@@ -73,6 +74,11 @@ public class PriceDiscoveryPanel extends JPanel {
             return null;
         }
         return super.getToolTipText(event);
+    }
+
+    public void setCurrencyFormatter(CurrencyFormatter currencyFormatter) {
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
+        repaint();
     }
 
     public void setPointSelectedListener(Consumer<Vehicle> listener) {
@@ -124,8 +130,8 @@ public class PriceDiscoveryPanel extends JPanel {
 
             Font labelFont = g.getFont().deriveFont(Font.BOLD, 11f);
             g.setFont(labelFont);
-            drawAxisTitle(g, "Price (ZAR)", plotLeft + plotWidth / 2, getHeight() - 12, true);
-            drawAxisTitle(g, "Score/R100k", 14, plotTop + plotHeight / 2, false);
+            drawAxisTitle(g, currencyFormatter.priceFieldLabel("Price"), plotLeft + plotWidth / 2, getHeight() - 12, true);
+            drawAxisTitle(g, currencyFormatter.scorePer100kLabel(), 14, plotTop + plotHeight / 2, false);
 
             drawBenchmarkLine(g, benchmark, xMin, xMax, yMin, yMax, plotLeft, plotTop, plotWidth, plotHeight, plotRight);
 
@@ -399,8 +405,7 @@ public class PriceDiscoveryPanel extends JPanel {
         return plotTop + plotHeight - (int) Math.round(fraction * plotHeight);
     }
 
-    private static String formatPrice(double value) {
-        NumberFormat format = NumberFormat.getIntegerInstance(new Locale("en", "ZA"));
-        return format.format(Math.round(value));
+    private String formatPrice(double value) {
+        return currencyFormatter.formatNumberOnly(value);
     }
 }

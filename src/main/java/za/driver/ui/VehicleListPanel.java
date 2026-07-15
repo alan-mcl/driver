@@ -3,11 +3,10 @@ package za.driver.ui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,8 +14,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableRowSorter;
 
 import za.driver.garage.GarageClearanceCalculator;
 import za.driver.model.DerivedMetrics;
@@ -24,13 +28,21 @@ import za.driver.model.GarageDimensions;
 import za.driver.model.Metric;
 import za.driver.model.Pricing;
 import za.driver.model.ScoringProfile;
+import za.driver.model.SortColumnRef;
 import za.driver.model.Vehicle;
+import za.driver.model.VehicleFilterPreferences;
+import za.driver.model.VehicleSortPreferences;
+import za.driver.model.VehicleTableColumn;
+import za.driver.presentation.CurrencyFormatter;
 import za.driver.presentation.MetricLabels;
 import za.driver.scoring.MetricScores;
 import za.driver.scoring.ScoringInputCoverage;
 import za.driver.scoring.TopWeightedMetrics;
+import za.driver.service.AppConfigService;
 import za.driver.service.VehicleFilter;
 import za.driver.service.VehicleFilterCriteria;
+import za.driver.service.VehicleListPreferencesMapper;
+import za.driver.service.VehicleTableColumnResolver;
 
 public class VehicleListPanel extends JPanel {
 
@@ -39,17 +51,28 @@ public class VehicleListPanel extends JPanel {
     private static final int SCORE_PER_100K_COLUMN_OFFSET = 0;
     private static final int DATA_COMPLETENESS_COLUMN_OFFSET = 1;
     private static final int GARAGE_CLEARANCE_COLUMN_OFFSET = 2;
+    private static final int FILTER_SAVE_DELAY_MS = 300;
 
+    private final AppConfigService appConfigService;
     private final FilterBar filterBar = new FilterBar();
     private final VehicleTableModel tableModel;
     private final JTable table;
+    private CurrencyFormatter currencyFormatter;
     private VehicleFilterCriteria filterCriteria = VehicleFilterCriteria.empty();
     private List<Vehicle> allVehicles = new ArrayList<>();
     private GarageDimensions garageDimensions = GarageDimensions.defaults();
+    private boolean restoringSort;
+    private Timer filterSaveTimer;
 
-    public VehicleListPanel(ScoringProfile activeProfile, GarageDimensions garageDimensions) {
+    public VehicleListPanel(
+            ScoringProfile activeProfile,
+            GarageDimensions garageDimensions,
+            AppConfigService appConfigService,
+            CurrencyFormatter currencyFormatter) {
         super(new java.awt.BorderLayout());
         this.garageDimensions = garageDimensions;
+        this.appConfigService = appConfigService;
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
         tableModel = new VehicleTableModel(activeProfile);
         table = new JTable(tableModel);
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -58,11 +81,14 @@ public class VehicleListPanel extends JPanel {
         table.setShowGrid(true);
         table.setGridColor(new Color(225, 225, 225));
         table.setIntercellSpacing(new Dimension(1, 1));
+        filterBar.setCurrencyFormatter(this.currencyFormatter);
         configureRenderers();
         configureColumnWidths();
+        configureSortPersistence();
         filterBar.addChangeListener(criteria -> {
             filterCriteria = criteria;
             applyFilter();
+            scheduleFilterSave();
         });
 
         add(filterBar, java.awt.BorderLayout.NORTH);
@@ -77,10 +103,19 @@ public class VehicleListPanel extends JPanel {
         return table;
     }
 
+    public void setCurrencyFormatter(CurrencyFormatter currencyFormatter) {
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
+        filterBar.setCurrencyFormatter(this.currencyFormatter);
+        tableModel.rebuildColumnNames();
+        configureRenderers();
+        table.repaint();
+    }
+
     public void setActiveProfile(ScoringProfile profile) {
         tableModel.setActiveProfile(profile);
         configureColumnWidths();
         applyFilter();
+        restoreSort();
     }
 
     public void setGarageDimensions(GarageDimensions garageDimensions) {
@@ -91,7 +126,9 @@ public class VehicleListPanel extends JPanel {
     public void loadVehicles(List<Vehicle> vehicles) {
         filterBar.updateFleetPrices(vehicles);
         allVehicles = new ArrayList<>(vehicles);
+        restoreFilter(vehicles);
         applyFilter();
+        restoreSort();
     }
 
     public Vehicle getSelectedVehicle() {
@@ -148,6 +185,130 @@ public class VehicleListPanel extends JPanel {
         }
     }
 
+    private void restoreFilter(List<Vehicle> vehicles) {
+        int fleetMax = DEFAULT_FLEET_MAX(vehicles);
+        VehicleFilterPreferences saved = appConfigService.getVehicleListPreferences().getFilter();
+        VehicleFilterPreferences clamped = VehicleListPreferencesMapper.clampFilter(saved, fleetMax);
+        VehicleFilterCriteria criteria = VehicleListPreferencesMapper.toCriteria(clamped);
+        filterBar.applyCriteria(criteria, true);
+        filterCriteria = criteria;
+    }
+
+    private static int DEFAULT_FLEET_MAX(List<Vehicle> vehicles) {
+        int fleetMaxZar = 2_000_000;
+        for (Vehicle vehicle : vehicles) {
+            Pricing pricing = vehicle.getPricing();
+            if (pricing == null || pricing.filterPrice() == null) {
+                continue;
+            }
+            int price = pricing.filterPrice().intValue();
+            if (price > fleetMaxZar) {
+                fleetMaxZar = price;
+            }
+        }
+        return fleetMaxZar;
+    }
+
+    private void scheduleFilterSave() {
+        if (filterSaveTimer != null && filterSaveTimer.isRunning()) {
+            filterSaveTimer.stop();
+        }
+        filterSaveTimer = new Timer(FILTER_SAVE_DELAY_MS, event -> persistFilter());
+        filterSaveTimer.setRepeats(false);
+        filterSaveTimer.start();
+    }
+
+    private void persistFilter() {
+        VehicleFilterPreferences filter = VehicleListPreferencesMapper.fromCriteria(filterCriteria);
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                appConfigService.setFilterPreferences(filter);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                } catch (Exception ex) {
+                    // Preferences save failures are non-fatal; user can continue working.
+                }
+            }
+        }.execute();
+    }
+
+    private void configureSortPersistence() {
+        TableRowSorter<VehicleTableModel> sorter = rowSorter();
+        sorter.addRowSorterListener(event -> {
+            if (restoringSort) {
+                return;
+            }
+            persistSort(sorter);
+        });
+    }
+
+    private void restoreSort() {
+        VehicleSortPreferences saved = appConfigService.getVehicleListPreferences().getSort();
+        if (saved == null || saved.getColumnKey() == null) {
+            return;
+        }
+        SortColumnRef ref = new SortColumnRef(saved.getColumnKey(), saved.getMetric());
+        Optional<Integer> modelIndex = VehicleTableColumnResolver.modelIndexFor(ref, tableModel.getTopMetrics());
+        if (modelIndex.isEmpty()) {
+            return;
+        }
+        TableRowSorter<VehicleTableModel> sorter = rowSorter();
+        restoringSort = true;
+        try {
+            boolean ascending = saved.getAscending() == null || saved.getAscending();
+            sorter.setSortKeys(List.of(new RowSorter.SortKey(
+                    modelIndex.get(),
+                    ascending ? SortOrder.ASCENDING : SortOrder.DESCENDING)));
+        } finally {
+            restoringSort = false;
+        }
+    }
+
+    private void persistSort(TableRowSorter<VehicleTableModel> sorter) {
+        List<? extends RowSorter.SortKey> sortKeys = sorter.getSortKeys();
+        if (sortKeys == null || sortKeys.isEmpty()) {
+            return;
+        }
+        RowSorter.SortKey sortKey = sortKeys.get(0);
+        Optional<SortColumnRef> ref = VehicleTableColumnResolver.sortColumnAt(
+                sortKey.getColumn(),
+                tableModel.getTopMetrics());
+        if (ref.isEmpty()) {
+            return;
+        }
+        VehicleSortPreferences sort = new VehicleSortPreferences();
+        sort.setColumnKey(ref.get().columnKey());
+        sort.setMetric(ref.get().metric());
+        sort.setAscending(sortKey.getSortOrder() == SortOrder.ASCENDING);
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                appConfigService.setSortPreferences(sort);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                } catch (Exception ex) {
+                    // Preferences save failures are non-fatal.
+                }
+            }
+        }.execute();
+    }
+
+    @SuppressWarnings("unchecked")
+    private TableRowSorter<VehicleTableModel> rowSorter() {
+        return (TableRowSorter<VehicleTableModel>) table.getRowSorter();
+    }
+
     private void applyFilter() {
         List<Vehicle> visible = new ArrayList<>();
         for (Vehicle vehicle : allVehicles) {
@@ -159,15 +320,10 @@ public class VehicleListPanel extends JPanel {
     }
 
     private void configureRenderers() {
-        NumberFormat currencyFormat = NumberFormat.getIntegerInstance(new Locale("en", "ZA"));
         table.setDefaultRenderer(BigDecimal.class, new DefaultTableCellRenderer() {
             @Override
             protected void setValue(Object value) {
-                if (value == null) {
-                    setText("-");
-                } else {
-                    setText("R " + currencyFormat.format(value));
-                }
+                setText(currencyFormatter.format(value instanceof BigDecimal bigDecimal ? bigDecimal : null));
             }
         });
         table.setDefaultRenderer(Double.class, new DefaultTableCellRenderer() {
@@ -234,6 +390,10 @@ public class VehicleListPanel extends JPanel {
             topMetrics = TopWeightedMetrics.topN(profile, TOP_METRIC_COUNT);
             rebuildColumnNames();
             fireTableStructureChanged();
+        }
+
+        List<Metric> getTopMetrics() {
+            return topMetrics;
         }
 
         void setVehicles(List<Vehicle> vehicles) {
@@ -339,7 +499,7 @@ public class VehicleListPanel extends JPanel {
             for (Metric metric : topMetrics) {
                 columnNames.add(MetricLabels.displayName(metric, activeProfile));
             }
-            columnNames.add("Score/R100k");
+            columnNames.add(currencyFormatter.scorePer100kLabel());
             columnNames.add("Data Completeness");
             columnNames.add("Garage Clearance");
         }
@@ -349,17 +509,17 @@ public class VehicleListPanel extends JPanel {
         }
 
         private static BigDecimal listPriceValue(Pricing pricing) {
-            if (pricing == null || pricing.getListPriceZar() == null) {
+            if (pricing == null || pricing.getListPrice() == null) {
                 return null;
             }
-            return pricing.getListPriceZar();
+            return pricing.getListPrice();
         }
 
         private static BigDecimal dealerOfferValue(Pricing pricing) {
-            if (pricing == null || pricing.getDealerOfferZar() == null) {
+            if (pricing == null || pricing.getDealerOffer() == null) {
                 return null;
             }
-            return pricing.getDealerOfferZar();
+            return pricing.getDealerOffer();
         }
 
         private static Double overallScoreValue(DerivedMetrics metrics) {

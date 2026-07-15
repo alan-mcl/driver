@@ -254,11 +254,16 @@ Represents a specific vehicle derivative.
 
 ## Pricing
 
+Plain numeric prices with no stored currency unit. Display currency is cosmetic only (see DisplayPreferences).
+
 | Field | Type |
 |---------|---------|
-| listPriceZar | Decimal |
-| dealerOfferZar | Decimal (optional) |
-| priceDate | Date |
+| listPrice | Decimal |
+| dealerOffer | Decimal (optional) |
+| listPriceDate | Date |
+| dealerOfferDate | Date (optional) |
+
+**Legacy JSON aliases (accepted on read):** `listPriceZar`, `priceZar` → `listPrice`; `dealerOfferZar` → `dealerOffer`; `priceDate` → `listPriceDate`.
 
 ---
 
@@ -355,8 +360,56 @@ Application-level settings persisted across restarts.
 | Field | Type | Required |
 |---------|---------|---------|
 | activeProfileId | UUID | No |
+| vehicleList | VehicleListPreferences | No |
+| display | DisplayPreferences | No |
 
 Stored in `data/app-config.json`. When missing or pointing at a deleted profile, the first available scoring profile is used.
+
+### VehicleListPreferences
+
+Last-used vehicle list filter and column sort. Not named presets.
+
+| Field | Type | Required |
+|---------|---------|---------|
+| filter | VehicleFilterPreferences | No |
+| sort | VehicleSortPreferences | No |
+
+### VehicleFilterPreferences
+
+Mirrors FilterBar controls. Filter max price is a plain number.
+
+| Field | Type | Required |
+|---------|---------|---------|
+| maxPrice | Decimal | No |
+| bodyType | BodyType enum | No |
+| fuelType | FuelType enum | No |
+| status | VehicleStatus enum | No |
+| minOverallScore | Double | No |
+| minGarageClearanceMm | Integer | No |
+
+**Legacy JSON alias (accepted on read):** `maxPriceZar` → `maxPrice`.
+
+### VehicleSortPreferences
+
+| Field | Type | Required |
+|---------|---------|---------|
+| columnKey | VehicleTableColumn enum | No |
+| metric | Metric enum | No (required when columnKey is METRIC) |
+| ascending | Boolean | No |
+
+`VehicleTableColumn` values: `MAKE`, `MODEL`, `DERIVATIVE`, `LIST_PRICE`, `DEALER_OFFER`, `OVERALL_SCORE`, `METRIC`, `SCORE_PER_100K`, `DATA_COMPLETENESS`, `GARAGE_CLEARANCE`.
+
+### DisplayPreferences
+
+Cosmetic display currency only. Vehicle price values are stored as plain numbers (`pricing.listPrice`, `pricing.dealerOffer`); no currency conversion is performed. Scoring is unaffected.
+
+| Field | Type | Required |
+|---------|---------|---------|
+| preset | CurrencyPreset enum | No (defaults to ZAR) |
+| customSymbol | String | No (used when preset is CUSTOM) |
+| customLocaleTag | String | No (used when preset is CUSTOM, e.g. `en-ZA`) |
+
+`CurrencyPreset` values: `ZAR`, `USD`, `EUR`, `GBP`, `CUSTOM`.
 
 ---
 

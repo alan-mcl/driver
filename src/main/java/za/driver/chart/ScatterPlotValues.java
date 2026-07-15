@@ -27,10 +27,10 @@ public final class ScatterPlotValues {
     }
 
     private static OptionalDouble priceValue(Pricing pricing) {
-        if (pricing == null || pricing.effectivePriceZar() == null) {
+        if (pricing == null || pricing.effectivePrice() == null) {
             return OptionalDouble.empty();
         }
-        return OptionalDouble.of(pricing.effectivePriceZar().doubleValue());
+        return OptionalDouble.of(pricing.effectivePrice().doubleValue());
     }
 
     private static OptionalDouble metricValue(Vehicle vehicle, Metric metric) {

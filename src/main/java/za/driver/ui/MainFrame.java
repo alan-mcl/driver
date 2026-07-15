@@ -62,11 +62,16 @@ public class MainFrame extends JFrame {
     public MainFrame(AppServices services) {
         super(APP_NAME);
         this.services = services;
-        this.listPanel = new VehicleListPanel(services.activeProfile, services.garageDimensions);
+        this.listPanel = new VehicleListPanel(
+                services.activeProfile,
+                services.garageDimensions,
+                services.appConfigService,
+                services.currencyFormatter);
         this.detailPanel = new VehicleDetailPanel(
                 services.scoringDataReportService,
                 services.brandReliabilityConfigService,
-                services.activeProfile);
+                services.activeProfile,
+                services.currencyFormatter);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -197,6 +202,10 @@ public class MainFrame extends JFrame {
         JMenuItem brandReliabilityItem = new JMenuItem("Brand Reliability…");
         brandReliabilityItem.addActionListener(e -> openBrandReliabilityDialog());
         configMenu.add(brandReliabilityItem);
+
+        JMenuItem displayPreferencesItem = new JMenuItem("Display Preferences…");
+        displayPreferencesItem.addActionListener(e -> openDisplayPreferencesDialog());
+        configMenu.add(displayPreferencesItem);
 
         JMenu viewMenu = new JMenu("View");
         viewMenu.setMnemonic(KeyEvent.VK_V);
@@ -357,6 +366,21 @@ public class MainFrame extends JFrame {
         dialog.setVisible(true);
     }
 
+    private void openDisplayPreferencesDialog() {
+        DisplayPreferencesDialog dialog = new DisplayPreferencesDialog(this, services, this::refreshDisplayPreferences);
+        dialog.setVisible(true);
+    }
+
+    private void refreshDisplayPreferences() {
+        services.refreshCurrencyFormatter();
+        listPanel.setCurrencyFormatter(services.currencyFormatter);
+        detailPanel.setCurrencyFormatter(services.currencyFormatter);
+        if (priceDiscoveryDialog != null) {
+            priceDiscoveryDialog.setCurrencyFormatter(services.currencyFormatter);
+        }
+        refreshVehicles();
+    }
+
     private void openBrandReliabilityDialog() {
         BrandReliabilityDialog dialog = new BrandReliabilityDialog(this, services, ignored -> {
             UUID selectedId = listPanel.getSelectedVehicle() != null ? listPanel.getSelectedVehicle().getId() : null;
@@ -383,7 +407,8 @@ public class MainFrame extends JFrame {
                 this,
                 listPanel.getVisibleVehicles(),
                 listPanel.getSelectedVehicles(),
-                services.activeProfile);
+                services.activeProfile,
+                services.currencyFormatter);
         dialog.setVisible(true);
         dialog.toFront();
     }
@@ -445,7 +470,8 @@ public class MainFrame extends JFrame {
                                 lastSelectedId = vehicle.getId();
                                 detailPanel.loadVehicle(vehicle, persistedIds.contains(vehicle.getId()));
                             },
-                            () -> {}));
+                            () -> {}),
+                    services.currencyFormatter);
         } else {
             priceDiscoveryDialog.setActiveProfile(services.activeProfile);
             priceDiscoveryDialog.refreshData();
@@ -541,7 +567,11 @@ public class MainFrame extends JFrame {
                     if (vehiclesToExport.isEmpty()) {
                         throw new IllegalStateException("Selected vehicles could not be loaded.");
                     }
-                    services.presentationExportService.export(outputDir, vehiclesToExport, services.activeProfile);
+                    services.presentationExportService.export(
+                            outputDir,
+                            vehiclesToExport,
+                            services.activeProfile,
+                            services.currencyFormatter);
                     return outputDir;
                 },
                 path -> showPresentationExportCompleteDialog(path, selected.size()),

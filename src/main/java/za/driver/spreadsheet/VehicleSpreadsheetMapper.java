@@ -134,12 +134,25 @@ public final class VehicleSpreadsheetMapper {
     }
 
     private static Map<String, String> normalizeLegacyHeaders(Map<String, String> row) {
-        if (row.containsKey("pricing.priceZar") && !row.containsKey("pricing.listPriceZar")) {
-            Map<String, String> normalized = new LinkedHashMap<>(row);
-            normalized.put("pricing.listPriceZar", row.get("pricing.priceZar"));
-            return normalized;
+        Map<String, String> normalized = new LinkedHashMap<>(row);
+        boolean changed = false;
+        if (normalized.containsKey("pricing.priceZar") && !normalized.containsKey("pricing.listPrice")) {
+            normalized.put("pricing.listPrice", normalized.get("pricing.priceZar"));
+            changed = true;
         }
-        return row;
+        if (normalized.containsKey("pricing.listPriceZar") && !normalized.containsKey("pricing.listPrice")) {
+            normalized.put("pricing.listPrice", normalized.get("pricing.listPriceZar"));
+            changed = true;
+        }
+        if (normalized.containsKey("pricing.dealerOfferZar") && !normalized.containsKey("pricing.dealerOffer")) {
+            normalized.put("pricing.dealerOffer", normalized.get("pricing.dealerOfferZar"));
+            changed = true;
+        }
+        if (normalized.containsKey("pricing.priceDate") && !normalized.containsKey("pricing.listPriceDate")) {
+            normalized.put("pricing.listPriceDate", normalized.get("pricing.priceDate"));
+            changed = true;
+        }
+        return changed ? normalized : row;
     }
 
     static Object readValue(Vehicle vehicle, String header) {
@@ -224,9 +237,10 @@ public final class VehicleSpreadsheetMapper {
             case RELIABILITY_SCORE_HEADER -> derivedReliabilityScore(vehicle);
             case PRESTIGE_MANUAL_HEADER -> manualPrestigeOverride(vehicle);
             case PRESTIGE_SCORE_HEADER -> derivedPrestigeScore(vehicle);
-            case "pricing.listPriceZar", "pricing.priceZar" -> nestedPricing(vehicle).getListPriceZar();
-            case "pricing.dealerOfferZar" -> nestedPricing(vehicle).getDealerOfferZar();
-            case "pricing.priceDate" -> nestedPricing(vehicle).getPriceDate();
+            case "pricing.listPrice", "pricing.listPriceZar", "pricing.priceZar" -> nestedPricing(vehicle).getListPrice();
+            case "pricing.dealerOffer", "pricing.dealerOfferZar" -> nestedPricing(vehicle).getDealerOffer();
+            case "pricing.listPriceDate", "pricing.priceDate" -> nestedPricing(vehicle).getListPriceDate();
+            case "pricing.dealerOfferDate" -> nestedPricing(vehicle).getDealerOfferDate();
             case "source.sourceType" -> nestedSource(vehicle).getSourceType();
             case "source.sourceName" -> nestedSource(vehicle).getSourceName();
             case "source.sourceUrl" -> nestedSource(vehicle).getSourceUrl();
@@ -315,9 +329,10 @@ public final class VehicleSpreadsheetMapper {
             case PRESTIGE_MANUAL_HEADER -> nestedManualScoreOverrides(vehicle).setPrestigeScore(Double.valueOf(raw));
             case RELIABILITY_HEURISTIC_HEADER, RELIABILITY_SCORE_HEADER, PRESTIGE_SCORE_HEADER -> {
             }
-            case "pricing.listPriceZar", "pricing.priceZar" -> nestedPricing(vehicle).setListPriceZar(new BigDecimal(raw));
-            case "pricing.dealerOfferZar" -> nestedPricing(vehicle).setDealerOfferZar(new BigDecimal(raw));
-            case "pricing.priceDate" -> nestedPricing(vehicle).setPriceDate(parseDate(raw));
+            case "pricing.listPrice", "pricing.listPriceZar", "pricing.priceZar" -> nestedPricing(vehicle).setListPrice(new BigDecimal(raw));
+            case "pricing.dealerOffer", "pricing.dealerOfferZar" -> nestedPricing(vehicle).setDealerOffer(new BigDecimal(raw));
+            case "pricing.listPriceDate", "pricing.priceDate" -> nestedPricing(vehicle).setListPriceDate(parseDate(raw));
+            case "pricing.dealerOfferDate" -> nestedPricing(vehicle).setDealerOfferDate(parseDate(raw));
             case "source.sourceType" -> nestedSource(vehicle).setSourceType(SourceType.valueOf(raw));
             case "source.sourceName" -> nestedSource(vehicle).setSourceName(raw);
             case "source.sourceUrl" -> nestedSource(vehicle).setSourceUrl(raw);

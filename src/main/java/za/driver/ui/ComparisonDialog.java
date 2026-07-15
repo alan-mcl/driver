@@ -6,7 +6,6 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -53,6 +52,7 @@ import za.driver.presentation.BodyTypeLabels;
 import za.driver.presentation.MetricLabels;
 import za.driver.presentation.VehicleSortOrder;
 import za.driver.model.VehicleIdentity;
+import za.driver.presentation.CurrencyFormatter;
 import za.driver.scoring.MetricScores;
 
 public class ComparisonDialog extends JDialog {
@@ -62,9 +62,7 @@ public class ComparisonDialog extends JDialog {
     private static final int VALUE_COLUMN_WIDTH = 180;
     private static final int HEADER_HEIGHT = 34;
 
-    private static final NumberFormat CURRENCY_FORMAT =
-            NumberFormat.getIntegerInstance(new Locale("en", "ZA"));
-
+    private final CurrencyFormatter currencyFormatter;
     private final ComparisonTableModel tableModel;
     private final Vehicle[] selected = new Vehicle[VEHICLE_COLUMN_COUNT];
     private final JComboBox<Vehicle>[] vehicleCombos = new JComboBox[VEHICLE_COLUMN_COUNT];
@@ -73,8 +71,10 @@ public class ComparisonDialog extends JDialog {
             JFrame owner,
             List<Vehicle> allVehicles,
             List<Vehicle> initialSelection,
-            ScoringProfile activeProfile) {
+            ScoringProfile activeProfile,
+            CurrencyFormatter currencyFormatter) {
         super(owner, "Compare Vehicles", false);
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
         this.tableModel = new ComparisonTableModel(buildRows(activeProfile), selected);
 
         List<Vehicle> sortedVehicles = new ArrayList<>(allVehicles);
@@ -213,11 +213,11 @@ public class ComparisonDialog extends JDialog {
         };
     }
 
-    private static List<ComparisonRow> buildRows(ScoringProfile profile) {
+    private List<ComparisonRow> buildRows(ScoringProfile profile) {
         List<ComparisonRow> rows = new ArrayList<>();
 
-        rows.add(field("List price", ComparisonDialog::formatListPrice));
-        rows.add(field("Dealer offer", ComparisonDialog::formatDealerOffer));
+        rows.add(field(currencyFormatter.priceFieldLabel("List price"), this::formatListPrice));
+        rows.add(field(currencyFormatter.priceFieldLabel("Dealer offer"), this::formatDealerOffer));
 
         addSection(rows, "General");
         rows.add(field("Make", Vehicle::getMake));
@@ -309,7 +309,8 @@ public class ComparisonDialog extends JDialog {
         rows.add(field("Locally produced", v -> formatBoolean(ownership(v).getLocalProduction())));
 
         addSection(rows, "Pricing");
-        rows.add(field("Price date (YYYY-MM-DD)", v -> formatDate(pricing(v).getPriceDate())));
+        rows.add(field("List price date (YYYY-MM-DD)", v -> formatDate(pricing(v).getListPriceDate())));
+        rows.add(field("Dealer offer date (YYYY-MM-DD)", v -> formatDate(pricing(v).getDealerOfferDate())));
 
         addSection(rows, "Source");
         rows.add(field("Source type", v -> formatEnum(source(v).getSourceType())));
@@ -329,7 +330,7 @@ public class ComparisonDialog extends JDialog {
         rows.add(field(MetricLabels.displayName(Metric.AWESOMENESS, profile),
                 v -> formatScore(metrics(v).getAwesomenessScore())));
         rows.add(field("Overall", v -> formatScore(metrics(v).getOverallScore())));
-        rows.add(field("Score/R100k", v -> formatScore(metrics(v).getScorePer100k())));
+        rows.add(field(currencyFormatter.scorePer100kLabel(), v -> formatScore(metrics(v).getScorePer100k())));
 
         return rows;
     }
@@ -413,20 +414,20 @@ public class ComparisonDialog extends JDialog {
         return metrics != null ? metrics : new DerivedMetrics();
     }
 
-    private static String formatListPrice(Vehicle vehicle) {
+    private String formatListPrice(Vehicle vehicle) {
         Pricing pricing = vehicle.getPricing();
-        if (pricing == null || pricing.getListPriceZar() == null) {
+        if (pricing == null || pricing.getListPrice() == null) {
             return "-";
         }
-        return "R " + CURRENCY_FORMAT.format(pricing.getListPriceZar());
+        return currencyFormatter.format(pricing.getListPrice());
     }
 
-    private static String formatDealerOffer(Vehicle vehicle) {
+    private String formatDealerOffer(Vehicle vehicle) {
         Pricing pricing = vehicle.getPricing();
-        if (pricing == null || pricing.getDealerOfferZar() == null) {
+        if (pricing == null || pricing.getDealerOffer() == null) {
             return "-";
         }
-        return "R " + CURRENCY_FORMAT.format(pricing.getDealerOfferZar());
+        return currencyFormatter.format(pricing.getDealerOffer());
     }
 
     private static String formatString(String value) {

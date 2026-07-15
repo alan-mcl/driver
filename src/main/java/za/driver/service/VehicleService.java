@@ -12,6 +12,7 @@ import za.driver.import_.ImportResult;
 import za.driver.import_.ImportVehicleEntry;
 import za.driver.import_.VehicleImportMerger;
 import za.driver.model.DataQuality;
+import za.driver.model.Pricing;
 import za.driver.model.ScoringProfile;
 import za.driver.model.Source;
 import za.driver.model.SourceType;
@@ -36,7 +37,7 @@ public class VehicleService {
     public List<Vehicle> findAll() throws IOException {
         List<Vehicle> vehicles = vehicleRepository.findAll();
         for (Vehicle vehicle : vehicles) {
-            VehicleImportMerger.migrateLegacyPricingDataQuality(vehicle);
+            normalizePricing(vehicle);
         }
         return vehicles;
     }
@@ -44,6 +45,7 @@ public class VehicleService {
     public List<Vehicle> findAll(ScoringProfile profile) throws IOException {
         List<Vehicle> vehicles = vehicleRepository.findAll();
         for (Vehicle vehicle : vehicles) {
+            normalizePricing(vehicle);
             applyCalculatedMetrics(vehicle, profile);
         }
         return vehicles;
@@ -51,7 +53,7 @@ public class VehicleService {
 
     public Optional<Vehicle> findById(UUID id) throws IOException {
         Optional<Vehicle> vehicle = vehicleRepository.findById(id);
-        vehicle.ifPresent(VehicleImportMerger::migrateLegacyPricingDataQuality);
+        vehicle.ifPresent(VehicleService::normalizePricing);
         return vehicle;
     }
 
@@ -79,7 +81,7 @@ public class VehicleService {
 
     public Vehicle save(Vehicle vehicle, ScoringProfile profile, ScoringOverrides overrides) throws IOException {
         ManualScoreOverrideUtil.applyOverrides(vehicle, overrides);
-        VehicleImportMerger.migrateLegacyPricingDataQuality(vehicle);
+        normalizePricing(vehicle);
         vehicle.setDerivedMetrics(null);
         enrichSource(vehicle);
         ScoringOverrides effectiveOverrides = ScoringOverrides.fromVehicle(vehicle);
@@ -163,6 +165,7 @@ public class VehicleService {
         vehicle.getSource().setImportedDate(LocalDateTime.now());
         ScoringOverrides mergedOverrides = ScoringOverrides.merge(entry.scoringOverrides(), overrides);
         ManualScoreOverrideUtil.applyOverrides(vehicle, mergedOverrides);
+        normalizePricing(vehicle);
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, profile, ScoringOverrides.fromVehicle(vehicle)));
         vehicleRepository.save(vehicle);
         return vehicle;
@@ -199,13 +202,21 @@ public class VehicleService {
             vehicle.setDataQuality(dataQuality);
         }
 
-        VehicleImportMerger.migrateLegacyPricingDataQuality(vehicle);
+        normalizePricing(vehicle);
         enrichSource(vehicle);
         vehicle.getSource().setImportedDate(LocalDateTime.now());
         ManualScoreOverrideUtil.applyOverrides(vehicle, overrides);
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, profile, ScoringOverrides.fromVehicle(vehicle)));
         vehicleRepository.save(vehicle);
         return vehicle;
+    }
+
+    static void normalizePricing(Vehicle vehicle) {
+        VehicleImportMerger.migrateLegacyPricing(vehicle);
+        Pricing pricing = vehicle.getPricing();
+        if (pricing != null) {
+            pricing.normalizeDates();
+        }
     }
 
     static void enrichSource(Vehicle vehicle) {

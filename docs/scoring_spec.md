@@ -4,7 +4,7 @@ Detailed reference for how Driver calculates vehicle scores. This document mirro
 
 **Related documents:**
 
-- [data_dictionary.md](data_dictionary.md) — canonical field definitions (dot-paths such as `safety.ncapStars`, `pricing.listPriceZar`)
+- [data_dictionary.md](data_dictionary.md) — canonical field definitions (dot-paths such as `safety.ncapStars`, `pricing.listPrice`)
 - [design_spec.md](design_spec.md) — product goals and metric overview
 
 **Source of truth in code:**
@@ -178,7 +178,7 @@ Sub-metric weights sum to **100**.
 
 Each sub-score is included only when its source data is present. Missing sub-scores are excluded and weights renormalize.
 
-**Not scored:** `pricing.listPriceZar`, `pricing.dealerOfferZar`, `ownership.serviceIntervalKm`, `ownership.localProduction` (factual; informs manual `partsSupportScore` assignment).
+**Not scored:** `pricing.listPrice`, `pricing.dealerOffer`, `ownership.serviceIntervalKm`, `ownership.localProduction` (factual; informs manual `partsSupportScore` assignment).
 
 ### Coverage score (warranty, service plan, maintenance plan)
 
@@ -508,7 +508,9 @@ Computed in `ScoringService` after the overall score:
 scorePer100k = overallScore / effectivePrice × 100_000
 ```
 
-Effective price is `pricing.dealerOfferZar` when set and > 0, otherwise `pricing.listPriceZar`.
+Effective price is `pricing.dealerOffer` when set and > 0, otherwise `pricing.listPrice`.
+
+**Metric scores** (Safety, Running Cost, Overall, etc.) do **not** use purchase price — they are computed from vehicle specifications only. Purchase price affects **Score/R100k** (effective price), display layers, and the max-price filter (lowest of list and dealer when both are set).
 
 Rules:
 
@@ -545,7 +547,7 @@ Reference vehicle: `ScoringTestFixtures.fullVehicle()` — 2024 Toyota Corolla 1
 | `ownership.servicePlanKm` | 100000 |
 | `ownership.partsSupportScore` | 90 |
 | `wheels.tyreSize` | 195/60 R16 |
-| `pricing.listPriceZar` | 350000 |
+| `pricing.listPrice` | 350000 |
 | `dimensions.seats` | 5 |
 | `dimensions.wheelbaseMm` | 2700 |
 | `dimensions.turningCircleM` | 10.8 |

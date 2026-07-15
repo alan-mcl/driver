@@ -1,11 +1,9 @@
 package za.driver.presentation;
 
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 
 import za.driver.model.ScoringProfile;
 
@@ -20,7 +18,8 @@ public final class RevealPresentationBuilder {
     public static String build(
             List<BodyTypeSection> sections,
             ScoringProfile profile,
-            LocalDateTime exportedAt) {
+            LocalDateTime exportedAt,
+            CurrencyFormatter currencyFormatter) {
         int modelCount = sections.stream().mapToInt(section -> section.models().size()).sum();
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n");
@@ -39,7 +38,7 @@ public final class RevealPresentationBuilder {
 
         appendTitleSlide(html, modelCount, profile, exportedAt);
         for (BodyTypeSection section : sections) {
-            appendBodyTypeSection(html, section);
+            appendBodyTypeSection(html, section, currencyFormatter);
         }
         appendClosingSlide(html, exportedAt);
 
@@ -73,16 +72,22 @@ public final class RevealPresentationBuilder {
         html.append("      </section>\n");
     }
 
-    private static void appendBodyTypeSection(StringBuilder html, BodyTypeSection section) {
+    private static void appendBodyTypeSection(
+            StringBuilder html,
+            BodyTypeSection section,
+            CurrencyFormatter currencyFormatter) {
         html.append("      <section class=\"body-type-slide\">\n");
         html.append("        <h2>").append(HtmlEscaper.escape(section.label())).append("</h2>\n");
         html.append("      </section>\n");
         for (ModelGroup group : section.models()) {
-            appendModelSlide(html, group);
+            appendModelSlide(html, group, currencyFormatter);
         }
     }
 
-    private static void appendModelSlide(StringBuilder html, ModelGroup group) {
+    private static void appendModelSlide(
+            StringBuilder html,
+            ModelGroup group,
+            CurrencyFormatter currencyFormatter) {
         String displayName = group.displayName();
         String imagePath = "images/" + group.imageFilename();
         html.append("      <section class=\"model-slide\" data-model=\"")
@@ -107,7 +112,7 @@ public final class RevealPresentationBuilder {
                     .append(HtmlEscaper.escape(group.yearRange()))
                     .append("</p>\n");
         }
-        appendTrimPriceOverlay(html, group);
+        appendTrimPriceOverlay(html, group, currencyFormatter);
         html.append("          </div>\n");
         html.append("        </div>\n");
         html.append("        <div class=\"model-details\">\n");
@@ -124,13 +129,16 @@ public final class RevealPresentationBuilder {
         html.append("      </section>\n");
     }
 
-    private static void appendTrimPriceOverlay(StringBuilder html, ModelGroup group) {
+    private static void appendTrimPriceOverlay(
+            StringBuilder html,
+            ModelGroup group,
+            CurrencyFormatter currencyFormatter) {
         html.append("            <ul class=\"trim-prices-overlay\">\n");
         for (TrimEntry trim : group.trims()) {
             html.append("              <li><span class=\"trim\">")
                     .append(HtmlEscaper.escape(trim.label()))
                     .append("</span><span class=\"price\">")
-                    .append(HtmlEscaper.escape(formatPrice(trim.listPriceZar())))
+                    .append(HtmlEscaper.escape(formatPrice(trim.listPrice(), currencyFormatter)))
                     .append("</span></li>\n");
         }
         if (group.hiddenTrimCount() > 0) {
@@ -182,11 +190,11 @@ public final class RevealPresentationBuilder {
         html.append("      </section>\n");
     }
 
-    static String formatPrice(BigDecimal priceZar) {
-        if (priceZar == null) {
+    static String formatPrice(BigDecimal price, CurrencyFormatter currencyFormatter) {
+        if (price == null) {
             return "Price TBC";
         }
-        NumberFormat currency = NumberFormat.getIntegerInstance(new Locale("en", "ZA"));
-        return "R " + currency.format(priceZar);
+        CurrencyFormatter formatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
+        return formatter.format(price);
     }
 }

@@ -44,7 +44,7 @@ class PriceDiscoveryCalculatorTest {
 
     @Test
     void discountHelpers_computeZarAndPercent() {
-        assertEquals(45_000.0, PriceDiscoveryCalculator.discountZar(450_000.0, 405_000.0));
+        assertEquals(45_000.0, PriceDiscoveryCalculator.discountAmount(450_000.0, 405_000.0));
         assertEquals(10.0, PriceDiscoveryCalculator.discountPct(450_000.0, 405_000.0), 0.001);
     }
 

@@ -22,7 +22,7 @@ There is no scoring sheet or config sheet. Export contains raw vehicle data only
 
 ## Column order
 
-Headers use dot notation (e.g. `pricing.listPriceZar`, `engine.powerKw`).
+Headers use dot notation (e.g. `pricing.listPrice`, `engine.powerKw`).
 
 The first columns are:
 
@@ -32,9 +32,12 @@ The first columns are:
 | `make` | Required |
 | `model` | Required |
 | `derivative` | |
-| `pricing.listPriceZar` | List price in ZAR |
-| `pricing.dealerOfferZar` | Dealer offer in ZAR (optional) |
-| `pricing.priceDate` | ISO-8601 date (`YYYY-MM-DD`) |
+| `pricing.listPrice` | List price (plain number) |
+| `pricing.dealerOffer` | Dealer offer (optional) |
+| `pricing.listPriceDate` | ISO-8601 list price date (`YYYY-MM-DD`) |
+| `pricing.dealerOfferDate` | ISO-8601 dealer offer date (optional) |
+
+**Legacy import headers (accepted on read):** `pricing.listPriceZar`, `pricing.priceZar`, `pricing.dealerOfferZar`.
 
 Remaining specification columns follow in schema order.
 

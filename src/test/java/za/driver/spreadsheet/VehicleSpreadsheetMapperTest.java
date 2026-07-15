@@ -29,7 +29,7 @@ class VehicleSpreadsheetMapperTest {
         assertEquals(vehicle.getId(), parsed.getId());
         assertEquals(vehicle.getMake(), parsed.getMake());
         assertEquals(vehicle.getEngine().getPowerKw(), parsed.getEngine().getPowerKw());
-        assertEquals(vehicle.getPricing().getListPriceZar(), parsed.getPricing().getListPriceZar());
+        assertEquals(vehicle.getPricing().getListPrice(), parsed.getPricing().getListPrice());
         assertEquals(vehicle.getFeatures().getClimateControlType(), parsed.getFeatures().getClimateControlType());
     }
 
@@ -37,13 +37,23 @@ class VehicleSpreadsheetMapperTest {
     void fromRowMap_partialRow_setsOnlyProvidedFields() {
         Map<String, String> row = Map.of(
                 "id", VEHICLE_ID.toString(),
-                "pricing.listPriceZar", "399000");
+                "pricing.listPrice", "399000");
 
         var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
         assertEquals(VEHICLE_ID, parsed.getId());
-        assertEquals(new BigDecimal("399000"), parsed.getPricing().getListPriceZar());
+        assertEquals(new BigDecimal("399000"), parsed.getPricing().getListPrice());
         assertNull(parsed.getMake());
         assertNull(parsed.getStatus());
+    }
+
+    @Test
+    void fromRowMap_legacyListPriceZarHeader_mapsToListPrice() {
+        Map<String, String> row = Map.of(
+                "id", VEHICLE_ID.toString(),
+                "pricing.listPriceZar", "399000");
+
+        var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
+        assertEquals(new BigDecimal("399000"), parsed.getPricing().getListPrice());
     }
 
     @Test
@@ -53,7 +63,17 @@ class VehicleSpreadsheetMapperTest {
                 "pricing.priceZar", "399000");
 
         var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
-        assertEquals(new BigDecimal("399000"), parsed.getPricing().getListPriceZar());
+        assertEquals(new BigDecimal("399000"), parsed.getPricing().getListPrice());
+    }
+
+    @Test
+    void fromRowMap_legacyPriceDateHeader_mapsToListPriceDate() {
+        Map<String, String> row = Map.of(
+                "id", VEHICLE_ID.toString(),
+                "pricing.priceDate", "2026-06-17");
+
+        var parsed = VehicleSpreadsheetMapper.fromRowMap(row, false);
+        assertEquals(java.time.LocalDate.of(2026, 6, 17), parsed.getPricing().getListPriceDate());
     }
 
     @Test
@@ -64,8 +84,8 @@ class VehicleSpreadsheetMapperTest {
     @Test
     void headers_placePricingAfterDerivative() {
         List<String> headers = VehicleSpreadsheetSchema.headers();
-        assertEquals(List.of("id", "make", "model", "derivative", "pricing.listPriceZar", "pricing.dealerOfferZar", "pricing.priceDate"),
-                headers.subList(0, 7));
+        assertEquals(List.of("id", "make", "model", "derivative", "pricing.listPrice", "pricing.dealerOffer", "pricing.listPriceDate", "pricing.dealerOfferDate"),
+                headers.subList(0, 8));
     }
 
     @Test

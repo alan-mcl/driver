@@ -1,6 +1,7 @@
 package za.driver.scoring;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -175,14 +176,30 @@ class ScoringServiceTest {
     @Test
     void calculate_dealerOffer_usesEffectivePriceForScorePer100k() {
         Pricing pricing = fullVehicle.getPricing();
-        pricing.setListPriceZar(new java.math.BigDecimal("350000"));
-        pricing.setDealerOfferZar(new java.math.BigDecimal("320000"));
+        pricing.setListPrice(new java.math.BigDecimal("350000"));
+        pricing.setDealerOffer(new java.math.BigDecimal("320000"));
         fullVehicle.setPricing(pricing);
 
         DerivedMetrics metrics = scoringService.calculate(fullVehicle, familyFocusedProfile);
 
         assertNotNull(metrics.getScorePer100k());
         assertEquals(metrics.getOverallScore() / 320_000.0 * 100_000.0, metrics.getScorePer100k(), 0.01);
+    }
+
+    @Test
+    void calculate_dealerOffer_doesNotChangeMetricScores() {
+        DerivedMetrics withoutOffer = scoringService.calculate(fullVehicle, familyFocusedProfile);
+
+        Pricing pricing = fullVehicle.getPricing();
+        pricing.setDealerOffer(new java.math.BigDecimal("320000"));
+        fullVehicle.setPricing(pricing);
+
+        DerivedMetrics withOffer = scoringService.calculate(fullVehicle, familyFocusedProfile);
+
+        assertEquals(withoutOffer.getSafetyScore(), withOffer.getSafetyScore());
+        assertEquals(withoutOffer.getRunningCostScore(), withOffer.getRunningCostScore());
+        assertEquals(withoutOffer.getOverallScore(), withOffer.getOverallScore());
+        assertNotEquals(withoutOffer.getScorePer100k(), withOffer.getScorePer100k());
     }
 
     @Test

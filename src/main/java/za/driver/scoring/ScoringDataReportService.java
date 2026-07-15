@@ -48,7 +48,6 @@ import za.driver.model.Engine;
 import za.driver.model.Features;
 import za.driver.model.Metric;
 import za.driver.model.Ownership;
-import za.driver.model.Pricing;
 import za.driver.model.Safety;
 import za.driver.model.Vehicle;
 import za.driver.model.Wheels;

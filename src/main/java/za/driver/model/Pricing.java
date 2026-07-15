@@ -4,45 +4,78 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Pricing {
 
-    @JsonAlias("priceZar")
-    private BigDecimal listPriceZar;
-    private BigDecimal dealerOfferZar;
-    private LocalDate priceDate;
+    @JsonProperty("listPrice")
+    @JsonAlias({"listPriceZar", "priceZar"})
+    private BigDecimal listPrice;
+    @JsonProperty("dealerOffer")
+    @JsonAlias("dealerOfferZar")
+    private BigDecimal dealerOffer;
+    @JsonAlias("priceDate")
+    private LocalDate listPriceDate;
+    private LocalDate dealerOfferDate;
 
     public Pricing() {
     }
 
-    public BigDecimal getListPriceZar() {
-        return listPriceZar;
+    public BigDecimal getListPrice() {
+        return listPrice;
     }
 
-    public void setListPriceZar(BigDecimal listPriceZar) {
-        this.listPriceZar = listPriceZar;
+    public void setListPrice(BigDecimal listPrice) {
+        this.listPrice = listPrice;
     }
 
-    public BigDecimal getDealerOfferZar() {
-        return dealerOfferZar;
+    public BigDecimal getDealerOffer() {
+        return dealerOffer;
     }
 
-    public void setDealerOfferZar(BigDecimal dealerOfferZar) {
-        this.dealerOfferZar = dealerOfferZar;
+    public void setDealerOffer(BigDecimal dealerOffer) {
+        this.dealerOffer = dealerOffer;
     }
 
-    public BigDecimal effectivePriceZar() {
-        if (dealerOfferZar != null && dealerOfferZar.signum() > 0) {
-            return dealerOfferZar;
+    public LocalDate getListPriceDate() {
+        return listPriceDate;
+    }
+
+    public void setListPriceDate(LocalDate listPriceDate) {
+        this.listPriceDate = listPriceDate;
+    }
+
+    public LocalDate getDealerOfferDate() {
+        return dealerOfferDate;
+    }
+
+    public void setDealerOfferDate(LocalDate dealerOfferDate) {
+        this.dealerOfferDate = dealerOfferDate;
+    }
+
+    public BigDecimal effectivePrice() {
+        if (dealerOffer != null && dealerOffer.signum() > 0) {
+            return dealerOffer;
         }
-        return listPriceZar;
+        return listPrice;
     }
 
-    public LocalDate getPriceDate() {
-        return priceDate;
+    public BigDecimal filterPrice() {
+        boolean hasList = listPrice != null && listPrice.signum() > 0;
+        boolean hasDealer = dealerOffer != null && dealerOffer.signum() > 0;
+        if (hasList && hasDealer) {
+            return listPrice.min(dealerOffer);
+        }
+        if (hasDealer) {
+            return dealerOffer;
+        }
+        return listPrice;
     }
 
-    public void setPriceDate(LocalDate priceDate) {
-        this.priceDate = priceDate;
+    public void normalizeDates() {
+        if (dealerOffer != null && dealerOffer.signum() > 0
+                && dealerOfferDate == null && listPriceDate != null) {
+            dealerOfferDate = listPriceDate;
+        }
     }
 }

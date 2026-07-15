@@ -15,14 +15,14 @@ public final class VehicleSortOrder {
         return Comparator
                 .comparing(Vehicle::getMake, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
                 .thenComparing(Vehicle::getModel, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-                .thenComparing(VehicleSortOrder::listPriceZar, Comparator.nullsLast(BigDecimal::compareTo));
+                .thenComparing(VehicleSortOrder::listPrice, Comparator.nullsLast(BigDecimal::compareTo));
     }
 
-    private static BigDecimal listPriceZar(Vehicle vehicle) {
+    private static BigDecimal listPrice(Vehicle vehicle) {
         if (vehicle == null) {
             return null;
         }
         Pricing pricing = vehicle.getPricing();
-        return pricing != null ? pricing.getListPriceZar() : null;
+        return pricing != null ? pricing.getListPrice() : null;
     }
 }

@@ -116,10 +116,10 @@ public class ScoringService {
             return null;
         }
         Pricing pricing = vehicle.getPricing();
-        if (pricing == null || pricing.effectivePriceZar() == null) {
+        if (pricing == null || pricing.effectivePrice() == null) {
             return null;
         }
-        double price = pricing.effectivePriceZar().doubleValue();
+        double price = pricing.effectivePrice().doubleValue();
         if (price <= 0.0) {
             return null;
         }

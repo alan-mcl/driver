@@ -162,7 +162,7 @@ public final class ModelGroup {
 
         List<TrimEntry> allTrims = vehicles.stream()
                 .map(vehicle -> toTrimEntry(vehicle, profile))
-                .sorted(Comparator.comparing(TrimEntry::listPriceZar, Comparator.nullsLast(Comparator.reverseOrder()))
+                .sorted(Comparator.comparing(TrimEntry::listPrice, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(TrimEntry::label, String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
@@ -185,7 +185,7 @@ public final class ModelGroup {
     private static TrimEntry toTrimEntry(Vehicle vehicle, ScoringProfile profile) {
         String derivative = vehicle.getDerivative();
         String label = derivative == null || derivative.isBlank() ? "Base" : derivative.trim();
-        BigDecimal price = vehicle.getPricing() == null ? null : vehicle.getPricing().getListPriceZar();
+        BigDecimal price = vehicle.getPricing() == null ? null : vehicle.getPricing().getListPrice();
         return new TrimEntry(label, price, buildRatingsForVehicle(vehicle, profile));
     }
 

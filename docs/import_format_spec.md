@@ -45,7 +45,7 @@ Use **either** a single vehicle or a batch of vehicles.
     { "id": "...", "make": "Toyota", "model": "Corolla", "status": "CANDIDATE" },
     {
       "vehicle": { "id": "...", "make": "Honda", "model": "Civic", "status": "CANDIDATE" },
-      "dataQuality": { "pricing.listPriceZar": "VERIFIED" }
+      "dataQuality": { "pricing.listPrice": "VERIFIED" }
     }
   ]
 }
@@ -395,25 +395,27 @@ Distances in **kilometres**, durations in **years**.
 
 ## Pricing
 
-South African Rand pricing.
+South African Rand pricing values stored as plain numbers (no currency unit field).
 
 ```json
 "pricing": {
-  "listPriceZar": 350000,
-  "dealerOfferZar": 335000,
-  "priceDate": "2026-06-17"
+  "listPrice": 350000,
+  "dealerOffer": 335000,
+  "listPriceDate": "2026-06-17",
+  "dealerOfferDate": "2026-06-20"
 }
 ```
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `listPriceZar` | number | Integer ZAR list/asking price, no cents required |
-| `dealerOfferZar` | number | Optional quoted or negotiated dealer price in ZAR |
-| `priceDate` | string | ISO date when price was observed |
+| `listPrice` | number | Integer list/asking price, no cents required |
+| `dealerOffer` | number | Optional quoted or negotiated price |
+| `listPriceDate` | string | ISO date when list price was observed |
+| `dealerOfferDate` | string | Optional ISO date when dealer offer was quoted |
 
-**Legacy import:** `priceZar` is accepted on read and mapped to `listPriceZar`. New exports use `listPriceZar` only.
+**Legacy import (accepted on read):** `listPriceZar`, `priceZar` → `listPrice`; `dealerOfferZar` → `dealerOffer`; `priceDate` → `listPriceDate`. New exports use `listPrice` and `listPriceDate` only.
 
-**LLM guidance:** Strip currency symbols and thousands separators. Use the published list/asking price for `listPriceZar`, not monthly payment figures. Use `dealerOfferZar` only when a specific dealer quote or negotiated price is known.
+**LLM guidance:** Strip currency symbols and thousands separators. Use the published list/asking price for `listPrice`, not monthly payment figures. Use `dealerOffer` only when a specific dealer quote or negotiated price is known.
 
 ---
 
@@ -446,8 +448,8 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
 
 ```json
 "dataQuality": {
-  "pricing.listPriceZar": "VERIFIED",
-  "pricing.dealerOfferZar": "VERIFIED",
+  "pricing.listPrice": "VERIFIED",
+  "pricing.dealerOffer": "VERIFIED",
   "engine.powerKw": "ESTIMATED",
   "safety.blindSpotMonitoring": "MISSING"
 }
@@ -608,8 +610,8 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
       "maintenancePlanKm": 90000
     },
     "pricing": {
-      "listPriceZar": 389900,
-      "priceDate": "2026-06-17"
+      "listPrice": 389900,
+      "listPriceDate": "2026-06-17"
     },
     "source": {
       "sourceType": "WEBSITE",
@@ -620,7 +622,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
   "dataQuality": {
     "engine.powerKw": "VERIFIED",
     "safety.blindSpotMonitoring": "MISSING",
-    "pricing.listPriceZar": "VERIFIED"
+    "pricing.listPrice": "VERIFIED"
   }
 }
 ```
@@ -637,7 +639,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
       "model": "Corolla",
       "derivative": "1.8 XS",
       "status": "CANDIDATE",
-      "pricing": { "listPriceZar": 389900, "priceDate": "2026-06-17" }
+      "pricing": { "listPrice": 389900, "listPriceDate": "2026-06-17" }
     },
     {
       "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -645,7 +647,7 @@ Optional root-level map recording confidence per field. Keys use **dot notation*
       "model": "Civic",
       "derivative": "1.5T Sport",
       "status": "CANDIDATE",
-      "pricing": { "listPriceZar": 429900, "priceDate": "2026-06-17" }
+      "pricing": { "listPrice": 429900, "listPriceDate": "2026-06-17" }
     }
   ]
 }

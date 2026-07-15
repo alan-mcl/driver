@@ -99,10 +99,10 @@ public final class PriceDiscoveryBuilder {
         if (metrics == null || metrics.getOverallScore() == null) {
             return null;
         }
-        if (pricing == null || pricing.getListPriceZar() == null) {
+        if (pricing == null || pricing.getListPrice() == null) {
             return null;
         }
-        double listPrice = pricing.getListPriceZar().doubleValue();
+        double listPrice = pricing.getListPrice().doubleValue();
         if (listPrice <= 0.0) {
             return null;
         }
@@ -153,16 +153,25 @@ public final class PriceDiscoveryBuilder {
         Double crossoverScore = PriceDiscoveryCalculator.scorePer100kAtPrice(subject.overallScore(), crossover);
         boolean beatsAtList = crossoverPrice != null
                 && PriceDiscoveryCalculator.beatsAtList(crossover, subject.listPrice());
+        Double dealerOffer = dealerOffer(subject.vehicle());
         return new PriceDiscoveryCrossover(
                 subject.vehicle(),
                 subject.label(),
                 subject.listPrice(),
+                dealerOffer,
                 subject.listScorePer100k(),
                 crossover,
                 crossoverScore != null ? crossoverScore : benchmark.listScorePer100k(),
-                crossoverPrice != null ? PriceDiscoveryCalculator.discountZar(subject.listPrice(), crossover) : 0.0,
+                crossoverPrice != null ? PriceDiscoveryCalculator.discountAmount(subject.listPrice(), crossover) : 0.0,
                 crossoverPrice != null ? PriceDiscoveryCalculator.discountPct(subject.listPrice(), crossover) : 0.0,
                 beatsAtList);
+    }
+
+    private static Double dealerOffer(Vehicle vehicle) {
+        if (vehicle == null || vehicle.getPricing() == null || vehicle.getPricing().getDealerOffer() == null) {
+            return null;
+        }
+        return vehicle.getPricing().getDealerOffer().doubleValue();
     }
 
     private static double[] computeXRange(

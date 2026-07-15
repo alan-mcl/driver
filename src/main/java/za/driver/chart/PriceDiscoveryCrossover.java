@@ -6,10 +6,11 @@ public record PriceDiscoveryCrossover(
         Vehicle subject,
         String subjectLabel,
         double listPrice,
+        Double dealerOffer,
         double listScorePer100k,
         double crossoverPrice,
         double crossoverScorePer100k,
-        double discountZar,
+        double discountAmount,
         double discountPct,
         boolean beatsAtList) {
 }

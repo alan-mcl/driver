@@ -15,6 +15,7 @@ import za.driver.persistence.BrandReliabilityConfigRepository;
 import za.driver.persistence.GarageConfigRepository;
 import za.driver.persistence.ScoringProfileRepository;
 import za.driver.persistence.VehicleRepository;
+import za.driver.presentation.CurrencyFormatter;
 import za.driver.presentation.PresentationExportService;
 import za.driver.scoring.ScoringDataReportService;
 import za.driver.scoring.ScoringService;
@@ -33,6 +34,7 @@ public final class AppServices {
     public final GarageConfigService garageConfigService;
     public final BrandReliabilityConfigService brandReliabilityConfigService;
     public final AppConfigService appConfigService;
+    public CurrencyFormatter currencyFormatter;
     public ScoringProfile activeProfile;
     public final GarageDimensions garageDimensions;
     public final Path dataRoot;
@@ -48,6 +50,7 @@ public final class AppServices {
             GarageConfigService garageConfigService,
             BrandReliabilityConfigService brandReliabilityConfigService,
             AppConfigService appConfigService,
+            CurrencyFormatter currencyFormatter,
             ScoringProfile activeProfile,
             Path dataRoot) {
         this.vehicleService = vehicleService;
@@ -60,6 +63,7 @@ public final class AppServices {
         this.garageConfigService = garageConfigService;
         this.brandReliabilityConfigService = brandReliabilityConfigService;
         this.appConfigService = appConfigService;
+        this.currencyFormatter = currencyFormatter;
         this.activeProfile = activeProfile;
         this.garageDimensions = garageConfigService.getGarageDimensions();
         this.dataRoot = dataRoot;
@@ -71,6 +75,10 @@ public final class AppServices {
         }
         activeProfile = profile;
         appConfigService.setActiveProfileId(profile.getId());
+    }
+
+    public void refreshCurrencyFormatter() {
+        currencyFormatter = new CurrencyFormatter(appConfigService.getDisplayPreferences());
     }
 
     public static AppServices create() throws IOException {
@@ -100,6 +108,8 @@ public final class AppServices {
             appConfigService.setActiveProfileId(activeProfile.getId());
         }
         GarageConfigService garageConfigService = new GarageConfigService(new GarageConfigRepository(dataRoot));
+        CurrencyFormatter currencyFormatter =
+                new CurrencyFormatter(appConfigService.getDisplayPreferences());
         return new AppServices(
                 vehicleService,
                 importService,
@@ -111,6 +121,7 @@ public final class AppServices {
                 garageConfigService,
                 brandReliabilityConfigService,
                 appConfigService,
+                currencyFormatter,
                 activeProfile,
                 dataRoot);
     }

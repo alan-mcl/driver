@@ -9,10 +9,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Consumer;
 
 import javax.swing.AbstractAction;
@@ -35,6 +33,7 @@ import za.driver.model.FuelType;
 import za.driver.model.Pricing;
 import za.driver.model.Vehicle;
 import za.driver.model.VehicleStatus;
+import za.driver.presentation.CurrencyFormatter;
 import za.driver.service.VehicleFilterCriteria;
 
 public class FilterBar extends JPanel {
@@ -59,6 +58,8 @@ public class FilterBar extends JPanel {
     private final JSpinner minGarageClearanceSpinner = dimensionSpinner();
 
     private final List<Consumer<VehicleFilterCriteria>> listeners = new ArrayList<>();
+    private CurrencyFormatter currencyFormatter = CurrencyFormatter.defaults();
+    private boolean restoring;
 
     public FilterBar() {
         super(new BorderLayout(0, 4));
@@ -112,6 +113,11 @@ public class FilterBar extends JPanel {
         minGarageClearanceSpinner.addChangeListener(changeListener);
     }
 
+    public void setCurrencyFormatter(CurrencyFormatter currencyFormatter) {
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
+        updatePriceValueLabel();
+    }
+
     public void addChangeListener(Consumer<VehicleFilterCriteria> listener) {
         listeners.add(listener);
     }
@@ -120,12 +126,12 @@ public class FilterBar extends JPanel {
         int fleetMaxZar = DEFAULT_MAX_PRICE_ZAR;
         for (Vehicle vehicle : vehicles) {
             Pricing pricing = vehicle.getPricing();
-            if (pricing == null || pricing.effectivePriceZar() == null) {
+            if (pricing == null || pricing.filterPrice() == null) {
                 continue;
             }
-            int priceZar = pricing.effectivePriceZar().intValue();
-            if (priceZar > fleetMaxZar) {
-                fleetMaxZar = priceZar;
+            int price = pricing.filterPrice().intValue();
+            if (price > fleetMaxZar) {
+                fleetMaxZar = price;
             }
         }
 
@@ -136,6 +142,37 @@ public class FilterBar extends JPanel {
         }
         snapMaxPriceSliderToIncrement();
         updatePriceValueLabel();
+    }
+
+    public void applyCriteria(VehicleFilterCriteria criteria, boolean notify) {
+        restoring = true;
+        try {
+            if (criteria == null) {
+                criteria = VehicleFilterCriteria.empty();
+            }
+            if (criteria.maxPrice() != null) {
+                int max = criteria.maxPrice().intValue();
+                max = Math.max(maxPriceSlider.getMinimum(), Math.min(maxPriceSlider.getMaximum(), max));
+                maxPriceSlider.setValue(snappedPrice(max));
+            } else {
+                maxPriceSlider.setValue(maxPriceSlider.getMaximum());
+            }
+            updatePriceValueLabel();
+            selectEnum(bodyTypeCombo, criteria.bodyType());
+            selectEnum(fuelTypeCombo, criteria.fuelType());
+            selectEnum(statusCombo, criteria.status());
+            minOverallSpinner.setValue(criteria.minOverallScore() != null
+                    ? criteria.minOverallScore().intValue()
+                    : 0);
+            minGarageClearanceSpinner.setValue(criteria.minGarageClearanceMm() != null
+                    ? criteria.minGarageClearanceMm()
+                    : 0);
+        } finally {
+            restoring = false;
+        }
+        if (notify) {
+            notifyListeners();
+        }
     }
 
     public VehicleFilterCriteria currentCriteria() {
@@ -251,12 +288,15 @@ public class FilterBar extends JPanel {
     }
 
     private void updatePriceValueLabel() {
-        priceValueLabel.setText("< R "
-                + NumberFormat.getIntegerInstance(Locale.forLanguageTag("en-ZA"))
-                        .format(snappedPrice(maxPriceSlider.getValue())));
+        priceValueLabel.setText(currencyFormatter.formatWithPrefix(
+                "< ",
+                BigDecimal.valueOf(snappedPrice(maxPriceSlider.getValue()))));
     }
 
     private void notifyListeners() {
+        if (restoring) {
+            return;
+        }
         VehicleFilterCriteria criteria = currentCriteria();
         for (Consumer<VehicleFilterCriteria> listener : listeners) {
             listener.accept(criteria);
@@ -276,6 +316,14 @@ public class FilterBar extends JPanel {
         for (Enum<?> value : values) {
             combo.addItem(value.name());
         }
+    }
+
+    private static void selectEnum(JComboBox<String> combo, Enum<?> value) {
+        if (value == null) {
+            combo.setSelectedIndex(0);
+            return;
+        }
+        combo.setSelectedItem(value.name());
     }
 
     private static Double spinnerScore(JSpinner spinner) {

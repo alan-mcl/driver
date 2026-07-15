@@ -3,7 +3,6 @@ package za.driver.ui;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.FlowLayout;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -31,17 +30,16 @@ import za.driver.chart.PriceDiscoveryData;
 import za.driver.model.ScoringProfile;
 import za.driver.model.Vehicle;
 import za.driver.model.VehicleIdentity;
+import za.driver.presentation.CurrencyFormatter;
 
 public class PriceDiscoveryDialog extends JDialog {
-
-    private static final NumberFormat CURRENCY_FORMAT =
-            NumberFormat.getIntegerInstance(new Locale("en", "ZA"));
 
     private final Supplier<List<Vehicle>> vehicleSupplier;
     private final JComboBox<Vehicle> benchmarkCombo = new JComboBox<>();
     private final JLabel statusLabel = new JLabel(" ");
     private final PriceDiscoveryPanel plotPanel = new PriceDiscoveryPanel();
-    private final CrossoverTableModel tableModel = new CrossoverTableModel();
+    private final CrossoverTableModel tableModel;
+    private CurrencyFormatter currencyFormatter;
     private ScoringProfile activeProfile;
     private UUID preferredBenchmarkId;
     private boolean updatingBenchmarkCombo;
@@ -50,10 +48,14 @@ public class PriceDiscoveryDialog extends JDialog {
             JFrame owner,
             ScoringProfile activeProfile,
             Supplier<List<Vehicle>> vehicleSupplier,
-            Consumer<Vehicle> onPointSelected) {
+            Consumer<Vehicle> onPointSelected,
+            CurrencyFormatter currencyFormatter) {
         super(owner, "Price Discovery", false);
         this.vehicleSupplier = vehicleSupplier;
         this.activeProfile = activeProfile;
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
+        this.tableModel = new CrossoverTableModel(this.currencyFormatter);
+        plotPanel.setCurrencyFormatter(this.currencyFormatter);
 
         benchmarkCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -109,6 +111,13 @@ public class PriceDiscoveryDialog extends JDialog {
         setDefaultCloseOperation(HIDE_ON_CLOSE);
 
         refreshData();
+    }
+
+    public void setCurrencyFormatter(CurrencyFormatter currencyFormatter) {
+        this.currencyFormatter = currencyFormatter != null ? currencyFormatter : CurrencyFormatter.defaults();
+        plotPanel.setCurrencyFormatter(this.currencyFormatter);
+        tableModel.setCurrencyFormatter(this.currencyFormatter);
+        repaint();
     }
 
     public void setActiveProfile(ScoringProfile profile) {
@@ -180,13 +189,13 @@ public class PriceDiscoveryDialog extends JDialog {
             if (vehicle == null) {
                 continue;
             }
-            if (vehicle.getPricing() == null || vehicle.getPricing().getListPriceZar() == null) {
+            if (vehicle.getPricing() == null || vehicle.getPricing().getListPrice() == null) {
                 continue;
             }
             if (vehicle.getDerivedMetrics() == null || vehicle.getDerivedMetrics().getOverallScore() == null) {
                 continue;
             }
-            if (vehicle.getPricing().getListPriceZar().doubleValue() <= 0.0) {
+            if (vehicle.getPricing().getListPrice().doubleValue() <= 0.0) {
                 continue;
             }
             candidates.add(vehicle);
@@ -194,12 +203,12 @@ public class PriceDiscoveryDialog extends JDialog {
         return candidates;
     }
 
-    private static void configureTableColumns(JTable table) {
+    private void configureTableColumns(JTable table) {
         DefaultTableCellRenderer currencyRenderer = new DefaultTableCellRenderer() {
             @Override
             protected void setValue(Object value) {
                 if (value instanceof Number number) {
-                    setText("R" + CURRENCY_FORMAT.format(Math.round(number.doubleValue())));
+                    setText(currencyFormatter.format(number.doubleValue()));
                 } else {
                     setText(value == null ? "" : value.toString());
                 }
@@ -222,11 +231,7 @@ public class PriceDiscoveryDialog extends JDialog {
                     if (cell.beatsAtList()) {
                         setText("—");
                     } else {
-                        setText(String.format(
-                                Locale.ROOT,
-                                "−R%s / −%.1f%%",
-                                CURRENCY_FORMAT.format(Math.round(cell.discountZar())),
-                                cell.discountPct()));
+                        setText(currencyFormatter.formatDiscount(cell.discountAmount(), cell.discountPct()));
                     }
                 } else {
                     setText("");
@@ -235,26 +240,28 @@ public class PriceDiscoveryDialog extends JDialog {
         };
 
         table.getColumnModel().getColumn(1).setCellRenderer(currencyRenderer);
-        table.getColumnModel().getColumn(2).setCellRenderer(scoreRenderer);
-        table.getColumnModel().getColumn(3).setCellRenderer(currencyRenderer);
-        table.getColumnModel().getColumn(4).setCellRenderer(discountRenderer);
+        table.getColumnModel().getColumn(2).setCellRenderer(currencyRenderer);
+        table.getColumnModel().getColumn(3).setCellRenderer(scoreRenderer);
+        table.getColumnModel().getColumn(4).setCellRenderer(currencyRenderer);
+        table.getColumnModel().getColumn(5).setCellRenderer(discountRenderer);
     }
 
-    private static final class CrossoverTableModel extends AbstractTableModel {
+    private final class CrossoverTableModel extends AbstractTableModel {
 
-        private record DiscountCell(double discountZar, double discountPct, boolean beatsAtList) {
+        private record DiscountCell(double discountAmount, double discountPct, boolean beatsAtList) {
         }
 
-        private static final String[] COLUMNS = {
-                "Vehicle",
-                "List price",
-                "List Score/R100k",
-                "Target price vs benchmark",
-                "Discount",
-                "Status"
-        };
-
+        private CurrencyFormatter formatter;
         private List<PriceDiscoveryCrossover> crossovers = List.of();
+
+        CrossoverTableModel(CurrencyFormatter formatter) {
+            this.formatter = formatter;
+        }
+
+        void setCurrencyFormatter(CurrencyFormatter formatter) {
+            this.formatter = formatter != null ? formatter : CurrencyFormatter.defaults();
+            fireTableStructureChanged();
+        }
 
         void setCrossovers(List<PriceDiscoveryCrossover> crossovers) {
             this.crossovers = crossovers != null ? List.copyOf(crossovers) : List.of();
@@ -268,12 +275,21 @@ public class PriceDiscoveryDialog extends JDialog {
 
         @Override
         public int getColumnCount() {
-            return COLUMNS.length;
+            return 7;
         }
 
         @Override
         public String getColumnName(int column) {
-            return COLUMNS[column];
+            return switch (column) {
+                case 0 -> "Vehicle";
+                case 1 -> formatter.priceFieldLabel("List price");
+                case 2 -> formatter.priceFieldLabel("Dealer offer");
+                case 3 -> "List " + formatter.scorePer100kLabel();
+                case 4 -> "Target price vs benchmark";
+                case 5 -> "Discount";
+                case 6 -> "Status";
+                default -> "";
+            };
         }
 
         @Override
@@ -282,10 +298,11 @@ public class PriceDiscoveryDialog extends JDialog {
             return switch (columnIndex) {
                 case 0 -> crossover.subjectLabel();
                 case 1 -> crossover.listPrice();
-                case 2 -> crossover.listScorePer100k();
-                case 3 -> crossover.beatsAtList() ? null : crossover.crossoverPrice();
-                case 4 -> new DiscountCell(crossover.discountZar(), crossover.discountPct(), crossover.beatsAtList());
-                case 5 -> crossover.beatsAtList() ? "Beats at list" : "Needs negotiation";
+                case 2 -> crossover.dealerOffer();
+                case 3 -> crossover.listScorePer100k();
+                case 4 -> crossover.beatsAtList() ? null : crossover.crossoverPrice();
+                case 5 -> new DiscountCell(crossover.discountAmount(), crossover.discountPct(), crossover.beatsAtList());
+                case 6 -> crossover.beatsAtList() ? "Beats at list" : "Needs negotiation";
                 default -> "";
             };
         }

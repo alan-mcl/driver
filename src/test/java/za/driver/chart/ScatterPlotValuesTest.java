@@ -22,7 +22,7 @@ class ScatterPlotValuesTest {
     void setUp() {
         vehicle = ScoringTestFixtures.fullVehicle();
         Pricing pricing = new Pricing();
-        pricing.setListPriceZar(new BigDecimal("450000"));
+        pricing.setListPrice(new BigDecimal("450000"));
         vehicle.setPricing(pricing);
 
         DerivedMetrics metrics = new DerivedMetrics();
