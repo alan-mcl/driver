@@ -15,7 +15,6 @@ import za.driver.model.Pricing;
 import za.driver.model.ScoringProfile;
 import za.driver.model.Vehicle;
 import za.driver.scoring.MetricScores;
-import za.driver.scoring.TopWeightedMetrics;
 
 public final class ModelGroup {
 
@@ -319,15 +318,14 @@ public final class ModelGroup {
         if (overall != null) {
             ratings.add(new RatingEntry("Overall", overall));
         }
-        int weightedCount = profile != null && profile.getWeights() != null ? profile.getWeights().size() : 0;
-        List<Metric> metrics = TopWeightedMetrics.topN(profile, Math.max(weightedCount, Metric.values().length));
+        List<Metric> metrics = PresentationMetricOrder.weightedMetrics(profile);
         for (Metric metric : metrics) {
             Double score = MetricScores.displayScore(vehicle, vehicle.getDerivedMetrics(), metric);
             if (score == null) {
                 continue;
             }
             ratings.add(new RatingEntry(
-                    MetricLabels.displayName(metric),
+                    MetricLabels.displayName(metric, profile),
                     score));
         }
         return ratings;

@@ -58,7 +58,10 @@ class RevealPresentationBuilderTest {
         assertFalse(html.contains("/5"));
         assertTrue(html.contains("Overall"));
         assertTrue(html.contains("Safety"));
-        assertTrue(html.contains("class=\"star filled\""));
+        assertTrue(html.contains("class=\"star-filled\""));
+        assertTrue(html.contains("class=\"star-empty\""));
+        assertFalse(html.contains("class=\"star filled\""));
+        assertFalse(html.contains("class=\"star half\""));
         assertFalse(html.contains("class=\"rating\""));
         assertTrue(html.contains("Highlights"));
         assertTrue(html.contains("Spacious family sedan"));

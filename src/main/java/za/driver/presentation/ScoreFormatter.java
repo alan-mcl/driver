@@ -26,13 +26,15 @@ public final class ScoreFormatter {
         StringBuilder markup = new StringBuilder();
         for (int i = 0; i < 5; i++) {
             double fill = Math.max(0.0, Math.min(1.0, starsOutOfFive - i));
-            if (fill >= 1.0) {
-                markup.append("<span class=\"star filled\">&#9733;</span>");
-            } else if (fill >= 0.5) {
-                markup.append("<span class=\"star half\">&#9733;</span>");
-            } else {
-                markup.append("<span class=\"star empty\">&#9734;</span>");
+            markup.append("<span class=\"star\">");
+            markup.append("<span class=\"star-empty\" aria-hidden=\"true\">&#9734;</span>");
+            if (fill > 0.0) {
+                int clipRightPercent = (int) Math.round((1.0 - fill) * 100.0);
+                markup.append("<span class=\"star-filled\" aria-hidden=\"true\" style=\"clip-path:inset(0 ")
+                        .append(clipRightPercent)
+                        .append("% 0 0)\">&#9733;</span>");
             }
+            markup.append("</span>");
         }
         return markup.toString();
     }

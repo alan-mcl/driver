@@ -280,8 +280,7 @@
   font-size: 0.85rem;
 }
 
-.trim-rating-block li.overall-rating .star.filled,
-.trim-rating-block li.overall-rating .star.half {
+.trim-rating-block li.overall-rating .star-filled {
   text-shadow: 0 0 6px rgba(218, 165, 32, 0.45);
 }
 
@@ -294,17 +293,29 @@
   font-size: 0.8rem;
 }
 
-.star.filled {
-  color: #daa520;
+.star {
+  position: relative;
+  display: inline-block;
+  width: 0.85em;
+  margin: 0 0.05em;
+  vertical-align: baseline;
 }
 
-.star.half {
-  color: #daa520;
-  opacity: 0.65;
+.star-empty,
+.star-filled {
+  display: block;
+  line-height: 1;
 }
 
-.star.empty {
+.star-empty {
   color: #555;
+}
+
+.star-filled {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #daa520;
 }
 
 @media (max-width: 900px) {

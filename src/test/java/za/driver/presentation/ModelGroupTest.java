@@ -49,6 +49,10 @@ class ModelGroupTest {
         assertEquals(6, group.trims().getFirst().ratings().size());
         assertEquals("Overall", group.trims().getFirst().ratings().getFirst().label());
         assertEquals("Awesomeness", group.trims().getFirst().ratings().get(1).label());
+        assertEquals("Safety", group.trims().getFirst().ratings().get(2).label());
+        assertEquals("Reliability", group.trims().getFirst().ratings().get(3).label());
+        assertEquals("Running Cost", group.trims().getFirst().ratings().get(4).label());
+        assertEquals("Performance", group.trims().getFirst().ratings().get(5).label());
         assertEquals(0, group.hiddenTrimCount());
     }
 
