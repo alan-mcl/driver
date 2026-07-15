@@ -122,12 +122,90 @@ public final class ModelGroup {
                 .sorted(Comparator.comparing(entry -> BodyTypeLabels.displayName(entry.getKey())))
                 .forEach(entry -> {
                     List<ModelGroup> models = new ArrayList<>(entry.getValue());
-                    models.sort(Comparator
-                            .comparing(ModelGroup::averagedOverallScore, Comparator.nullsLast(Comparator.reverseOrder()))
-                            .thenComparing(ModelGroup::displayName, String.CASE_INSENSITIVE_ORDER));
+                    sortModels(models);
                     sections.add(new BodyTypeSection(BodyTypeLabels.displayName(entry.getKey()), models));
                 });
         return List.copyOf(sections);
+    }
+
+    public static List<BodyTypeSection> groupByPriceBand(
+            List<Vehicle> vehicles,
+            ScoringProfile profile,
+            CurrencyFormatter currencyFormatter) {
+        List<ModelGroup> groups = buildGroups(vehicles, profile);
+        Map<String, Long> bandByGroupKey = bandKeysByGroupKey(vehicles);
+
+        Map<Long, List<ModelGroup>> byBand = new LinkedHashMap<>();
+        List<ModelGroup> unpriced = new ArrayList<>();
+        for (ModelGroup group : groups) {
+            String key = ImageSlug.groupKey(group.make(), group.model());
+            Long band = bandByGroupKey.get(key);
+            if (band == null) {
+                unpriced.add(group);
+            } else {
+                byBand.computeIfAbsent(band, ignored -> new ArrayList<>()).add(group);
+            }
+        }
+
+        List<BodyTypeSection> sections = new ArrayList<>();
+        byBand.entrySet().stream()
+                .sorted(Comparator.comparingLong(Map.Entry::getKey))
+                .forEach(entry -> {
+                    List<ModelGroup> models = new ArrayList<>(entry.getValue());
+                    sortModels(models);
+                    sections.add(new BodyTypeSection(
+                            PriceBandLabels.displayName(entry.getKey(), currencyFormatter),
+                            models));
+                });
+        if (!unpriced.isEmpty()) {
+            sortModels(unpriced);
+            sections.add(new BodyTypeSection(PriceBandLabels.UNPRICED_SECTION, unpriced));
+        }
+        return List.copyOf(sections);
+    }
+
+    private static void sortModels(List<ModelGroup> models) {
+        models.sort(Comparator
+                .comparing(ModelGroup::averagedOverallScore, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(ModelGroup::displayName, String.CASE_INSENSITIVE_ORDER));
+    }
+
+    private static Map<String, Long> bandKeysByGroupKey(List<Vehicle> vehicles) {
+        Map<String, List<Vehicle>> grouped = new LinkedHashMap<>();
+        for (Vehicle vehicle : vehicles) {
+            String key = ImageSlug.groupKey(vehicle.getMake(), vehicle.getModel());
+            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(vehicle);
+        }
+
+        Map<String, Long> bandByKey = new LinkedHashMap<>();
+        for (Map.Entry<String, List<Vehicle>> entry : grouped.entrySet()) {
+            BigDecimal minEffective = minimumEffectivePrice(entry.getValue());
+            if (minEffective != null) {
+                bandByKey.put(entry.getKey(), bandUpperBound(minEffective));
+            }
+        }
+        return bandByKey;
+    }
+
+    private static BigDecimal minimumEffectivePrice(List<Vehicle> vehicles) {
+        BigDecimal min = null;
+        for (Vehicle vehicle : vehicles) {
+            Pricing pricing = vehicle.getPricing();
+            if (pricing == null) {
+                continue;
+            }
+            BigDecimal effective = pricing.effectivePrice();
+            if (effective == null) {
+                continue;
+            }
+            min = min == null ? effective : min.min(effective);
+        }
+        return min;
+    }
+
+    private static long bandUpperBound(BigDecimal price) {
+        long amount = price.longValue();
+        return ((amount / 100_000) + 1) * 100_000L;
     }
 
     static List<ModelGroup> flattenSections(List<BodyTypeSection> sections) {
@@ -185,8 +263,10 @@ public final class ModelGroup {
     private static TrimEntry toTrimEntry(Vehicle vehicle, ScoringProfile profile) {
         String derivative = vehicle.getDerivative();
         String label = derivative == null || derivative.isBlank() ? "Base" : derivative.trim();
-        BigDecimal price = vehicle.getPricing() == null ? null : vehicle.getPricing().getListPrice();
-        return new TrimEntry(label, price, buildRatingsForVehicle(vehicle, profile));
+        Pricing pricing = vehicle.getPricing();
+        BigDecimal listPrice = pricing == null ? null : pricing.getListPrice();
+        BigDecimal dealerOffer = pricing == null ? null : pricing.getDealerOffer();
+        return new TrimEntry(label, listPrice, dealerOffer, buildRatingsForVehicle(vehicle, profile));
     }
 
     private static Double overallScore(Vehicle vehicle) {

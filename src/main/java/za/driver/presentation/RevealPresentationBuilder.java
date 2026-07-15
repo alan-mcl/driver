@@ -133,21 +133,29 @@ public final class RevealPresentationBuilder {
             StringBuilder html,
             ModelGroup group,
             CurrencyFormatter currencyFormatter) {
-        html.append("            <ul class=\"trim-prices-overlay\">\n");
+        html.append("            <div class=\"trim-prices-table\">\n");
+        html.append("              <div class=\"trim-price-row trim-price-header\">")
+                .append("<span class=\"trim-col\"></span>")
+                .append("<span class=\"price-col list-price\">List</span>")
+                .append("<span class=\"price-col dealer-offer\">Offer</span>")
+                .append("</div>\n");
         for (TrimEntry trim : group.trims()) {
-            html.append("              <li><span class=\"trim\">")
+            html.append("              <div class=\"trim-price-row\">")
+                    .append("<span class=\"trim-col\">")
                     .append(HtmlEscaper.escape(trim.label()))
-                    .append("</span><span class=\"price\">")
+                    .append("</span><span class=\"price-col list-price\">")
                     .append(HtmlEscaper.escape(formatPrice(trim.listPrice(), currencyFormatter)))
-                    .append("</span></li>\n");
+                    .append("</span><span class=\"price-col dealer-offer\">")
+                    .append(HtmlEscaper.escape(formatPrice(trim.dealerOffer(), currencyFormatter)))
+                    .append("</span></div>\n");
         }
         if (group.hiddenTrimCount() > 0) {
-            html.append("              <li class=\"trim-more\">+ ")
+            html.append("              <div class=\"trim-price-row trim-more\">+ ")
                     .append(group.hiddenTrimCount())
                     .append(group.hiddenTrimCount() == 1 ? " more trim" : " more trims")
-                    .append("</li>\n");
+                    .append("</div>\n");
         }
-        html.append("            </ul>\n");
+        html.append("            </div>\n");
     }
 
     private static void appendTrimRatingsPane(StringBuilder html, ModelGroup group) {

@@ -45,7 +45,13 @@ class RevealPresentationBuilderTest {
         assertTrue(html.contains("2.0 XR"));
         assertTrue(html.contains("R 350"));
         assertTrue(html.contains("R 420"));
-        assertTrue(html.contains("trim-prices-overlay"));
+        assertTrue(html.contains("price-col list-price"));
+        assertTrue(html.contains("price-col dealer-offer"));
+        assertTrue(html.contains("trim-price-header"));
+        assertTrue(html.contains(">List</span>"));
+        assertTrue(html.contains(">Offer</span>"));
+        assertTrue(html.contains("Price TBC"));
+        assertTrue(html.contains("trim-prices-table"));
         assertTrue(html.contains("trim-rating-block"));
         assertTrue(html.contains("Ratings"));
         assertTrue(html.contains("class=\"overall-rating\""));
@@ -81,6 +87,22 @@ class RevealPresentationBuilderTest {
     }
 
     @Test
+    void build_rendersDealerOfferWhenPresent() {
+        Vehicle vehicle = vehicle("1.8 XS", new BigDecimal("350000"), new BigDecimal("335000"));
+
+        List<BodyTypeSection> sections = ModelGroup.groupByBodyType(
+                List.of(vehicle),
+                ScoringTestFixtures.familyFocusedProfile());
+        String html = RevealPresentationBuilder.build(
+                sections,
+                ScoringTestFixtures.familyFocusedProfile(),
+                LocalDateTime.of(2025, 6, 24, 10, 30),
+                CurrencyFormatter.defaults());
+
+        assertTrue(html.contains("R 335"));
+    }
+
+    @Test
     void build_groupsDifferentBodyTypesIntoSeparateSections() {
         Vehicle sedan = vehicle("1.8 XS", new BigDecimal("350000"));
         Vehicle suv = vehicle("2.0 TSI", new BigDecimal("550000"));
@@ -103,10 +125,15 @@ class RevealPresentationBuilderTest {
     }
 
     private Vehicle vehicle(String derivative, BigDecimal price) {
+        return vehicle(derivative, price, null);
+    }
+
+    private Vehicle vehicle(String derivative, BigDecimal price, BigDecimal dealerOffer) {
         Vehicle vehicle = ScoringTestFixtures.fullVehicle();
         vehicle.setDerivative(derivative);
         Pricing pricing = new Pricing();
         pricing.setListPrice(price);
+        pricing.setDealerOffer(dealerOffer);
         vehicle.setPricing(pricing);
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, ScoringTestFixtures.familyFocusedProfile()));
         return vehicle;

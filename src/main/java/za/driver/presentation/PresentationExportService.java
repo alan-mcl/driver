@@ -43,9 +43,21 @@ public final class PresentationExportService {
             LocalDateTime exportedAt,
             CurrencyFormatter currencyFormatter)
             throws IOException {
+        export(outputDir, vehicles, profile, exportedAt, currencyFormatter, PresentationExportOptions.defaults());
+    }
+
+    public void export(
+            Path outputDir,
+            List<Vehicle> vehicles,
+            ScoringProfile profile,
+            LocalDateTime exportedAt,
+            CurrencyFormatter currencyFormatter,
+            PresentationExportOptions options)
+            throws IOException {
         if (vehicles == null || vehicles.isEmpty()) {
             throw new IllegalArgumentException("At least one vehicle is required.");
         }
+        PresentationExportOptions resolved = options != null ? options : PresentationExportOptions.defaults();
         Files.createDirectories(outputDir);
 
         copyResourceTree(RESOURCE_ROOT + "reveal", outputDir.resolve("reveal"));
@@ -53,7 +65,10 @@ public final class PresentationExportService {
         copyResourceTree(RESOURCE_ROOT + "images", outputDir.resolve("images"));
         copyResource(RESOURCE_ROOT + "assets/logo.png", outputDir.resolve("assets/logo.png"));
 
-        List<BodyTypeSection> sections = ModelGroup.groupByBodyType(vehicles, profile);
+        List<BodyTypeSection> sections = switch (resolved.groupingMode()) {
+            case BODY_TYPE -> ModelGroup.groupByBodyType(vehicles, profile);
+            case PRICE_BAND -> ModelGroup.groupByPriceBand(vehicles, profile, currencyFormatter);
+        };
         String html = RevealPresentationBuilder.build(sections, profile, exportedAt, currencyFormatter);
         Files.writeString(outputDir.resolve("index.html"), html);
         Files.writeString(outputDir.resolve("IMAGES.md"), buildImageManifest(ModelGroup.flattenSections(sections)));

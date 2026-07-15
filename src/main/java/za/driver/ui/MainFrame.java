@@ -41,6 +41,7 @@ import za.driver.model.ScoringProfile;
 import za.driver.model.Vehicle;
 import za.driver.model.VehicleIdentity;
 import za.driver.model.VehicleStatus;
+import za.driver.presentation.PresentationExportOptions;
 import za.driver.service.AppServices;
 
 public class MainFrame extends JFrame {
@@ -534,6 +535,11 @@ public class MainFrame extends JFrame {
             return;
         }
 
+        PresentationExportOptions options = new PresentationExportOptionsDialog(this, services).showDialog();
+        if (options == null) {
+            return;
+        }
+
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         chooser.setDialogTitle("Choose folder for presentation export");
@@ -571,7 +577,9 @@ public class MainFrame extends JFrame {
                             outputDir,
                             vehiclesToExport,
                             services.activeProfile,
-                            services.currencyFormatter);
+                            java.time.LocalDateTime.now(),
+                            services.currencyFormatter,
+                            options);
                     return outputDir;
                 },
                 path -> showPresentationExportCompleteDialog(path, selected.size()),

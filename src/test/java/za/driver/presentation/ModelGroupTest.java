@@ -134,6 +134,73 @@ class ModelGroupTest {
     }
 
     @Test
+    void groupByBodyType_populatesDealerOfferOnTrimEntry() {
+        Vehicle vehicle = trim("1.8 XS", new BigDecimal("350000"), new BigDecimal("335000"), 2024);
+
+        ModelGroup group = ModelGroup.groupByBodyType(
+                List.of(vehicle),
+                ScoringTestFixtures.familyFocusedProfile()).getFirst().models().getFirst();
+
+        assertEquals(new BigDecimal("335000"), group.trims().getFirst().dealerOffer());
+    }
+
+    @Test
+    void groupByPriceBand_assignsModelsByMinimumEffectivePrice() {
+        Vehicle sedan = trim("1.8 XS", new BigDecimal("350000"), 2024);
+        Vehicle suv = trim("2.0 TSI", new BigDecimal("550000"), 2024);
+        suv.setId(UUID.randomUUID());
+        suv.setMake("Volkswagen");
+        suv.setModel("Tiguan");
+        suv.setBodyType(BodyType.SUV);
+
+        List<BodyTypeSection> sections = ModelGroup.groupByPriceBand(
+                List.of(sedan, suv),
+                ScoringTestFixtures.familyFocusedProfile(),
+                CurrencyFormatter.defaults());
+
+        assertEquals(2, sections.size());
+        assertEquals("< R400k", sections.get(0).label());
+        assertEquals(1, sections.get(0).models().size());
+        assertEquals("Toyota Corolla", sections.get(0).models().getFirst().displayName());
+        assertEquals("< R600k", sections.get(1).label());
+        assertEquals("Volkswagen Tiguan", sections.get(1).models().getFirst().displayName());
+    }
+
+    @Test
+    void groupByPriceBand_usesDealerOfferForEffectivePriceBand() {
+        Vehicle expensiveTrim = trim("2.0 XR", new BigDecimal("420000"), 2024);
+        Vehicle cheaperTrim = trim("1.8 XS", new BigDecimal("350000"), new BigDecimal("310000"), 2024);
+        cheaperTrim.setId(UUID.randomUUID());
+
+        List<BodyTypeSection> sections = ModelGroup.groupByPriceBand(
+                List.of(expensiveTrim, cheaperTrim),
+                ScoringTestFixtures.familyFocusedProfile(),
+                CurrencyFormatter.defaults());
+
+        assertEquals(1, sections.size());
+        assertEquals("< R400k", sections.getFirst().label());
+    }
+
+    @Test
+    void groupByPriceBand_putsUnpricedModelsInPriceTbcSectionLast() {
+        Vehicle priced = trim("1.8 XS", new BigDecimal("350000"), 2024);
+        Vehicle unpriced = trim("Base", null, 2024);
+        unpriced.setId(UUID.randomUUID());
+        unpriced.setMake("Honda");
+        unpriced.setModel("Civic");
+
+        List<BodyTypeSection> sections = ModelGroup.groupByPriceBand(
+                List.of(priced, unpriced),
+                ScoringTestFixtures.familyFocusedProfile(),
+                CurrencyFormatter.defaults());
+
+        assertEquals(2, sections.size());
+        assertEquals("< R400k", sections.get(0).label());
+        assertEquals(PriceBandLabels.UNPRICED_SECTION, sections.get(1).label());
+        assertEquals("Honda Civic", sections.get(1).models().getFirst().displayName());
+    }
+
+    @Test
     void imageSlug_normalizesSpacesAndPunctuation() {
         assertEquals("toyota-corolla", ImageSlug.of("Toyota", "Corolla"));
         assertEquals("bmw-x3", ImageSlug.of("BMW", "X3"));
@@ -142,12 +209,17 @@ class ModelGroupTest {
     }
 
     private Vehicle trim(String derivative, BigDecimal price, int year) {
+        return trim(derivative, price, null, year);
+    }
+
+    private Vehicle trim(String derivative, BigDecimal price, BigDecimal dealerOffer, int year) {
         Vehicle vehicle = ScoringTestFixtures.fullVehicle();
         vehicle.setDerivative(derivative);
         vehicle.setModelYear(year);
         vehicle.setStatus(VehicleStatus.SHORTLISTED);
         Pricing pricing = new Pricing();
         pricing.setListPrice(price);
+        pricing.setDealerOffer(dealerOffer);
         vehicle.setPricing(pricing);
         vehicle.setDerivedMetrics(scoringService.calculate(vehicle, ScoringTestFixtures.familyFocusedProfile()));
         return vehicle;

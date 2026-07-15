@@ -42,4 +42,22 @@ class PresentationExportServiceTest {
         assertTrue(manifest.contains("toyota-corolla.jpg"));
         assertTrue(manifest.contains("Toyota Corolla"));
     }
+
+    @Test
+    void export_priceBandGrouping_writesBandSectionHeaders(@TempDir Path tempDir) throws Exception {
+        var vehicle = ScoringTestFixtures.fullVehicle();
+        vehicle.setDerivedMetrics(scoringService.calculate(vehicle, ScoringTestFixtures.familyFocusedProfile()));
+
+        Path outputDir = tempDir.resolve("presentation");
+        exportService.export(
+                outputDir,
+                List.of(vehicle),
+                ScoringTestFixtures.familyFocusedProfile(),
+                java.time.LocalDateTime.now(),
+                CurrencyFormatter.defaults(),
+                new PresentationExportOptions(PresentationGroupingMode.PRICE_BAND));
+
+        String html = Files.readString(outputDir.resolve("index.html"));
+        assertTrue(html.contains("&lt; R400k"));
+    }
 }
