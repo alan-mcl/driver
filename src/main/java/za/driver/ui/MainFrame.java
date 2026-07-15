@@ -46,7 +46,7 @@ import za.driver.service.AppServices;
 public class MainFrame extends JFrame {
 
     private static final String APP_NAME = "Driver";
-    private static final String APP_VERSION = "1.2";
+    private static final String APP_VERSION = "1.3";
 
     private final AppServices services;
     private final VehicleListPanel listPanel;

@@ -89,7 +89,7 @@ mvn exec:java -Dexec.mainClass="za.driver.Application"
 
 # Package fat JAR (Phase 9)
 mvn package
-java -jar target/driver-1.2.jar
+java -jar target/driver-1.3.jar
 ```
 
 ## Phase Discipline
